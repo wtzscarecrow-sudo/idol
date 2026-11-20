@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="安排木偶站位，运转留在戏台上的道具，在五幕巡演中赢得喝彩。">
+  <title>灯下偶戏 · 巡演戏台</title>
+  <link rel="stylesheet" href="./style.css?v=3">
+  <link rel="stylesheet" href="./feedback.css?v=3">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./" aria-label="灯下偶戏首页"><span class="seal">偶</span><span>灯下偶戏<small>巡演戏台</small></span></a>
+    <div class="top-actions">
+      <button id="tour" type="button">巡演图</button>
+      <button id="help" type="button">玩法</button>
+      <button id="sound" type="button" aria-pressed="false">声音关</button>
+    </div>
+  </header>
+  <main class="layout">
+    <section class="theatre" id="theatre" aria-labelledby="event-title">
+      <header class="playbill">
+        <div class="playbill-title">
+          <div class="playbill-meta"><span id="location"></span><span id="act-number"></span></div>
+          <h1 id="event-title"></h1>
+          <div class="act-track" id="act-track" aria-label="幕次进度"></div>
+        </div>
+        <section class="event-rule" aria-labelledby="target-label">
+          <div class="target-head"><h2 id="target-label">本幕目标</h2><strong id="goal-state"></strong></div>
+          <p id="event-goal" class="sr-only"></p>
+          <div class="meter" id="act-meter" role="progressbar" aria-label="本幕目标进度" aria-valuemin="0" aria-valuemax="100"><div class="meter-forecast"></div><div class="meter-fill"></div></div>
+          <div class="target-foot"><div id="goal-detail" class="goal-detail"></div><small id="event-reward"></small></div>
+        </section>
+        <div class="balances">
+          <div class="score-box"><span>巡演喝彩</span><div><strong id="applause"></strong><small id="score-target"></small></div><div class="meter" id="tour-meter" role="progressbar" aria-label="巡演喝彩进度" aria-valuemin="0" aria-valuemax="36"><div class="meter-fill"></div></div></div>
+          <div class="coin-box"><span>赏钱</span><div><strong id="coins"></strong><small> 枚</small></div></div>
+        </div>
+      </header>
+      <div class="stage" id="stage">
+        <div id="world" aria-label="实时三维戏台"></div>
+        <div class="stage-top"><span id="phase" class="phase">排演中</span></div>
+        <div id="slots" class="slots" aria-label="戏台站位"></div>
+        <div id="stage-effects" class="stage-effects" aria-hidden="true"></div>
+        <div id="tokens" class="tokens" aria-label="台上资源"></div>
+        <div id="caption" class="caption" aria-live="polite"></div>
+        <p id="graphics-warning" hidden>当前浏览器使用简化舞台，仍可正常排戏。</p>
+      </div>
+      <section class="stage-apron" aria-labelledby="cue-title">
+        <div class="cue">
+          <h2 id="cue-title">排演预估</h2>
+          <p id="forecast-summary" aria-live="polite"></p>
+        </div>
+        <div id="forecast" class="forecast" aria-label="各站位结算"></div>
+        <div class="stage-actions">
+          <button class="primary" id="perform" type="button">击鼓开戏</button>
+          <button class="text-button" id="log" type="button">演出记录</button>
+        </div>
+      </section>
+    </section>
+    <section class="hand-area" aria-labelledby="hand-heading">
+      <div class="section-head">
+        <h2 id="hand-heading">候场木偶</h2>
+        <div id="hand-filter" class="filters" aria-label="筛选木偶"></div>
+        <span id="hand-hint">点选或拖动木偶，安排上场</span>
+        <button id="recruit" type="button" aria-label="戏箱 · 招募">戏箱<span class="recruit-label"> · 招募</span></button>
+      </div>
+      <div id="hand" class="hand"></div>
+    </section>
+  </main>
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <div class="dialog-top"><h2 id="dialog-title"></h2><button id="close" type="button" aria-label="关闭">×</button></div>
+    <div id="dialog-body"></div>
+  </dialog>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+  <script type="module" src="./game.js?v=3"></script>
+</body>
+</html>
