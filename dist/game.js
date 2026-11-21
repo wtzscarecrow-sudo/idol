@@ -4,7 +4,7 @@ import { createStage } from './stage.js?v=8';
 import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=8';
 
 const byId=id=>document.getElementById(id);
-const key='dengxia-ouxi-save-v8';
+const key='dengxia-ouxi-save-v9';
 const theatre=byId('theatre'), stage=byId('stage'), hand=byId('hand'), dialog=byId('dialog'), dialogBody=byId('dialog-body');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const cn=['一','二','三','四','五'];
@@ -27,7 +27,7 @@ const load=()=>{
   } catch {}
   return fresh();
 };
-let state=load(), selected=null, playing=false, current=-1, muted=true, audio=null, filter='all';
+let state=load(), playing=false, current=-1, muted=true, audio=null, filter='all';
 let plannedFlights=[];
 let draftStyle='garden';
 let draft={};
@@ -51,7 +51,7 @@ const slotButtons=slots.map((name,i)=>{
   const button=document.createElement('button');
   button.className='slot';
   button.type='button';
-  button.addEventListener('click',()=>place(i,selected));
+  button.addEventListener('click',()=>place(i,null));
   button.addEventListener('dragover',e=>{
     if(!canEdit())return;
     e.preventDefault();
@@ -59,6 +59,7 @@ const slotButtons=slots.map((name,i)=>{
   });
   button.addEventListener('drop',e=>{
     e.preventDefault();
+    stage.dataset.selected='false';
     const copy=e.dataTransfer.getData('text/plain');
     if(/^\d+$/.test(copy))place(i,Number(copy));
   });
@@ -98,8 +99,8 @@ try {
 function place(i,copy){
   if(!canEdit())return;
   const existing=state.lineup[i];
+  if(existing===copy)return;
   if(copy===null){
-    if(existing===null)return;
     state.lineup[i]=null;
     text('announcement',cards[cardId(existing)].name+'回到手牌');
   } else {
@@ -108,17 +109,21 @@ function place(i,copy){
     if(origin!==-1&&origin!==i)state.lineup[origin]=existing;
     state.lineup[i]=copy;
     text('announcement',cards[cardId(copy)].name+'，'+slots[i]);
-    sound('tap');
   }
-  selected=null;
+  sound('tap');
   persist();
   update();
 }
-function select(copy){
+function togglePlacement(copy){
   if(!canEdit())return;
-  selected=selected===copy?null:copy;
-  text('announcement',selected!==null?'已选中'+cards[cardId(copy)].name+'。选择一个站位。':'已取消选择');
-  update();
+  const seated=state.lineup.indexOf(copy);
+  if(seated!==-1){
+    place(seated,null);
+    return;
+  }
+  const empty=state.lineup.indexOf(null);
+  if(empty!==-1)place(empty,copy);
+  else text('announcement','站位已满。再点一张已上场的手牌可撤下。');
 }
 
 const cardButtons=new Map();
@@ -151,14 +156,14 @@ function makeCard(copy){
   info.append(cardRules(card));
   button.title='上台即得 '+card.base+' 喝彩。'+card.text;
   button.append(info);
-  button.addEventListener('click',()=>select(copy));
+  button.addEventListener('click',()=>togglePlacement(copy));
   button.addEventListener('dragstart',e=>{
     if(!canEdit()){e.preventDefault();return;}
-    selected=copy;
+    stage.dataset.selected='true';
     e.dataTransfer.effectAllowed='move';
     e.dataTransfer.setData('text/plain',String(copy));
-    update();
   });
+  button.addEventListener('dragend',()=>{stage.dataset.selected='false';});
   cardButtons.set(copy,button);return button;
 }
 function syncTokens(board,changes=[],step=null){
@@ -186,7 +191,7 @@ function syncTokens(board,changes=[],step=null){
       item.dataset.flash='true';
     }
   }
-  scene.sync(cast(),board,selected!==null,event().place,changes.length>0,step);
+  scene.sync(cast(),board,false,event().place,changes.length>0,step);
 }
 function renderChoices(cues){
   const host=byId('stage-options');
@@ -304,7 +309,6 @@ function update(){
   const forecast=forecastAct();
   const lineup=cast();
   plannedFlights=canEdit()?forecast.steps.flatMap(step=>step.flight?[step.flight]:[]):[];
-  stage.dataset.selected=selected!==null;
   text('location',e.place);
   text('phase',!state.started?'待开局':playing?'演出中':state.finished?'已谢幕':state.ready?'本幕落定':'排演中');
   text('act-number','第'+cn[state.act]+'幕 / 五幕');
@@ -314,7 +318,8 @@ function update(){
   rewardLabel(e);
   balances(state.applause,state.coins);
   text('score-target',' / '+goalScore);
-  text('hand-hint',canEdit()?(selected!==null?'已选 '+cards[cardId(selected)].name+'，请选择站位':'点选或拖动木偶，安排上场'):'');
+  const handHint=lineup.includes(null)?'点击手牌依序上场，再点撤下':'站位已满，再点已上场的牌可撤下';
+  text('hand-hint',canEdit()?handHint:'');
   text('deck-status',state.started?'手牌 '+state.hand.length+' · 待抽 '+state.draw.length+' · 已演 '+state.used.length:'选一套牌组，开局抽 6 张');
   text('deck',state.started?'查看牌组':'选牌组');
   byId('deck').disabled=playing;
@@ -326,7 +331,7 @@ function update(){
     button.disabled=!canEdit();
     button.setAttribute('aria-current',String(current===i));
     button.dataset.butterfly=canEdit()&&forecast.buffs[i]?'+'+forecast.buffs[i]:'';
-    button.setAttribute('aria-label',slots[i]+'，'+(id?cards[id].name+'。'+(selected!==null?'放置选中的木偶':'点按撤下'):'空位'));
+    button.setAttribute('aria-label',slots[i]+'，'+(id?cards[id].name+'。点按撤下':'空位'));
     button.innerHTML='<b>'+slots[i]+'</b>'+(id?cards[id].name:'＋');
   });
   for(const [id,button] of filterButtons){
@@ -343,7 +348,7 @@ function update(){
     button.disabled=!canEdit();button.draggable=canEdit();
     button.dataset.inPlay=slot!==-1;
     button.dataset.slot=slot!==-1?slots[slot]:'';
-    button.setAttribute('aria-pressed',String(selected===copy));
+    button.setAttribute('aria-pressed',String(slot!==-1));
     button.setAttribute('aria-label',cards[cardId(copy)].name+'。'+button.title+(slot!==-1?' 已在'+slots[slot]+'。':''));
   }
   syncTokens(state.board);
@@ -465,7 +470,7 @@ async function perform(){
   if(state.lineup.every(copy=>copy===null))return;
   const e=event();
   const result=forecastAct();
-  playing=true;selected=null;update();sound('gong');
+  playing=true;update();sound('gong');
   const theatreBounds=theatre.getBoundingClientRect();
   if(theatreBounds.top<0){
     theatre.scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});
@@ -558,7 +563,7 @@ function begin(deck,custom=false){
   if(custom){
     try {localStorage.setItem(key+'-deck',JSON.stringify(deck));} catch {}
   }
-  selected=null;filter='all';cardButtons.clear();
+  filter='all';cardButtons.clear();
   dialog.close();persist();update();
   text('announcement','牌组已洗好，抽到六张手牌。');
 }
@@ -643,7 +648,7 @@ function modalContent(type){
   dialogBody.replaceChildren();
   if(type==='help'){
     text('dialog-title','怎样排一台戏');
-    row('看戏帖，排站位','每幕先看目标。选中候场木偶再点站位，也可以拖放。点击台上站位可撤下木偶。已有木偶可以用原站位和目标站位互换。');
+    row('看戏帖，排站位','点击手牌，按开场、过场、收场补第一个空位。再点已上场的牌或对应站位即可撤下。拖动手牌可指定站位，已上场的牌拖到其他站位可换位。');
     const legend=row('读能力图标','金色 ✦ 是上台即得的基础喝彩。下一行是额外技能。+ 表示获得，− 表示消耗，→ 表示转化或满足条件后的效果。');
     const keyLine=document.createElement('div');keyLine.className='goal-detail';
     for(const kind of ['bud','bloom','firework','bonsai','butterfly','audience','coin','applause']){
