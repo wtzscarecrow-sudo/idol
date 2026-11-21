@@ -1,10 +1,10 @@
-import { cards, events, fresh, goalScore, heat, nextBoard, route, scoreAct, slots, styles, varieties } from './rules.js?v=7';
-import { clearStage, copyLimit, deckSize, drawCards, presets, startDeck, validDeck } from './deck.js?v=7';
-import { createStage } from './stage.js?v=7';
-import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=5';
+import { cards, events, fresh, goalScore, heat, nextBoard, route, scoreAct, slots, styles, varieties } from './rules.js?v=8';
+import { clearStage, copyLimit, deckSize, drawCards, presets, startDeck, validDeck } from './deck.js?v=8';
+import { createStage } from './stage.js?v=8';
+import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=8';
 
 const byId=id=>document.getElementById(id);
-const key='dengxia-ouxi-save-v7';
+const key='dengxia-ouxi-save-v8';
 const theatre=byId('theatre'), stage=byId('stage'), hand=byId('hand'), dialog=byId('dialog'), dialogBody=byId('dialog-body');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const cn=['一','二','三','四','五'];
@@ -91,6 +91,7 @@ try {
       Array.from(figures.children).forEach((el,index)=>el.classList.toggle('active',i===index));
     },
     accent(){},
+    stageProps(){},
   };
 }
 
@@ -160,7 +161,7 @@ function makeCard(copy){
   });
   cardButtons.set(copy,button);return button;
 }
-function syncTokens(board,changes=[]){
+function syncTokens(board,changes=[],step=null){
   const container=byId('tokens');
   const bloom=board.flowers.filter(flower=>flower.age===1).length;
   const dates=[...board.fireworks].sort((a,b)=>a-b).map(date=>date===state.act?'今幕':'第'+(date+1)+'幕');
@@ -185,7 +186,7 @@ function syncTokens(board,changes=[]){
       item.dataset.flash='true';
     }
   }
-  scene.sync(cast(),board,selected!==null,event().place,changes.length>0);
+  scene.sync(cast(),board,selected!==null,event().place,changes.length>0,step);
 }
 function renderChoices(cues){
   const host=byId('stage-options');
@@ -383,13 +384,16 @@ function sound(kind){
     const start=audio.currentTime;
     const cues={
       win:[329.6,392,523.25,659.25],gong:[107,167],flower:[440,587],butterfly:[620,780,890],
-      lamp:[329,493,659],beat:[149,202],coin:[740,987],applause:[393,523],tap:[290],
+      bloom:[523,659,784],protect:[523,698],move:[510,765,1020],bonsai:[261,392,523],
+      firework:[127,205,330],advance:[294,392],audience:[262,330,440],spend:[370,220],
+      tally:[659,880],target:[392,523,659],lamp:[329,493,659],beat:[149,202],
+      coin:[740,987],applause:[393,523],tap:[290],
     };
     const pitches=cues[kind]??cues.tap;
     pitches.forEach((pitch,i)=>{
       const tone=audio.createOscillator(),volume=audio.createGain();
       const time=start+i*.075;
-      tone.type=kind==='gong'?'triangle':'sine';
+      tone.type=['gong','firework','spend'].includes(kind)?'triangle':'sine';
       tone.frequency.setValueAtTime(pitch,time);
       tone.frequency.exponentialRampToValueAtTime(pitch*.77,time+.21);
       volume.gain.setValueAtTime(.001,time);
@@ -406,6 +410,34 @@ click('sound',()=>{
   text('sound',muted?'声音关':'声音开');
   sound('tap');
 });
+
+const propActions={
+  flower:{gain:'新花登台',use:'赏花取彩',spend:'剪下盛花'},
+  bloom:{gain:'盛花绽放'},protect:{gain:'留花一幕'},
+  firework:{gain:'火种入台',use:'借焰取利'},advance:{gain:'引信缩短'},
+  bonsai:{gain:'盆景入台',use:'盆景点彩',spend:'旧盆离台'},
+  butterfly:{gain:'引蝶入场',use:'停蝶增彩'},move:{gain:'蝴蝶掠过戏台'},
+  audience:{gain:'看客入座',spend:'看客离场'},
+};
+function stageCue(step){
+  if(step.cue==='firework')return {theme:'firework',action:'升空 · 齐放',reward:true};
+  if(step.cue==='audience')return {theme:'audience',action:'席间喝彩'};
+  const change=step.changes.find(item=>item.kind==='move')??step.changes.find(item=>propActions[item.kind]);
+  const used=step.props?.[0];
+  if(change){
+    const {kind,amount}=change;
+    const actions=propActions[kind];
+    const exchanged=kind==='bonsai'&&step.changes.some(item=>item.kind===kind&&item.amount<0)&&step.changes.some(item=>item.kind===kind&&item.amount>0);
+    return {theme:kind,action:exchanged?'旧盆换新景':amount<0?actions.spend:actions.gain};
+  }
+  if(used)return {theme:used.kind,action:propActions[used.kind].use};
+  return {theme:'applause',action:'登台喝彩'};
+}
+function surge(element){
+  element.dataset.surged='false';
+  void element.offsetWidth;
+  element.dataset.surged='true';
+}
 
 async function perform(){
   if(playing)return;
@@ -438,10 +470,11 @@ async function perform(){
   if(theatreBounds.top<0){
     theatre.scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});
   }
-  const target=kind=>kind==='applause'?byId('applause'):kind==='coin'?byId('coins'):byId('token-'+kind);
-  effects.show('锣响 · 开戏',[]);
+  const target=kind=>kind==='applause'?byId('applause'):byId('coins');
+  effects.show('锣响 · 开戏',[],null,{action:'帘前亮相'});
   text('caption','锣响，开戏');
   await delay(560);
+  let met=false;
   for(const step of result.steps){
     current=step.i;
     highlightSlot(current);
@@ -449,33 +482,45 @@ async function perform(){
     if(!step.changes.length)continue;
     const title=step.id?cards[step.id].name:closingTitle[step.cue];
     text('caption',title+' · '+summary);
-    const kind=step.cue??step.changes.find(change=>change.amount>0)?.kind??'applause';
-    effects.show(title,step.changes,slotButtons[current],step.i===-1);
-    scene.accent(current,kind);
-    sound(kind);
-    await delay(230);
-    effects.fly(step.changes,target);
-    syncTokens(step.board,step.changes);
-    await delay(470);
+    const cue=stageCue(step);
+    const payouts=step.changes.filter(change=>change.amount>0&&['applause','coin'].includes(change.kind));
+    effects.show(title,step.changes,slotButtons[current],cue);
+    scene.accent(current,cue.theme);
+    if(step.changes.some(change=>change.amount<0&&change.kind!=='firework'))sound('spend');
+    scene.stageProps(step);
+    syncTokens(step.board,step.changes,step);
+    sound(cue.theme);
+    const fired=step.cue==='firework'?-step.changes[0].amount:0;
+    await delay(fired?620+(fired-1)*90:cue.theme==='applause'?210:390);
+    await effects.fly(payouts,target);
     balances(state.applause+step.points,state.coins+step.coins,step.changes);
+    if(payouts.some(change=>change.kind==='applause')){
+      sound('tally');surge(byId('applause').closest('.score-box'));
+    }
     text('forecast-summary','本幕 +'+step.points+' 喝彩');
     goalStatus(step.objectives);
-    await delay(330);
+    const justMet=!met&&step.points>=e.target;
+    if(justMet){
+      met=true;
+      sound('target');surge(byId('act-meter'));
+      text('caption','本幕目标达成 · '+step.points+' 喝彩');
+    }
+    await delay(justMet?290:145);
   }
   highlightSlot(-1);
   const reward=payout(result.reward);
   if(result.hit){
-    effects.show('戏帖达成 · 赏',reward,null,true);
+    effects.show('戏帖达成 · 赏',reward,null,{reward:true,action:'戏帖奖励'});
     scene.accent(-1,'applause');sound('win');
-    await delay(280);
-    effects.fly(reward,target);
-    await delay(470);
+    await delay(330);
+    await effects.fly(reward,target);
     balances(state.applause+result.score,state.coins+result.coins,reward);
     text('forecast-summary','本幕 +'+result.score+' 喝彩');
     goalStatus(result.progress,result.progress,true);
     rewardLabel(e,true);
     text('caption','戏帖奖励 · +'+result.reward.score+' 喝彩'+(result.reward.coins?' · +'+result.reward.coins+' 赏钱':''));
-    await delay(530);
+    surge(byId('applause').closest('.score-box'));
+    await delay(370);
   }else{
     effects.show('本幕目标未达成',[]);
     goalStatus(result.progress,result.progress,false);

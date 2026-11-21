@@ -495,20 +495,82 @@ export function createStage(host, slotButtons, cards) {
   const tokenObjects={flower:[],butterfly:[],firework:[],bonsai:[],audience:[]};
   const burstColors={flower:0xffa7b2,bloom:0xff72a2,protect:0xff9fba,butterfly:0xffc16b,move:0xffc16b,
     firework:0xff9d60,advance:0xffaa62,bonsai:0x97cf83,audience:0xdcb8f6,applause:0xffde7c,coin:0xffb54c};
-  const bursts=[];
+  const bursts=[], motions=[];
   const pulse=new T.PointLight(0xffbc79,0,5.8,2);
   scene.add(pulse);
-  function burstAt(x,y,z,kind){
+  function burstAt(x,y,z,kind,color=burstColors[kind]??0xffda8f){
     if(reduced)return;
-    const material=new T.MeshBasicMaterial({color:burstColors[kind]??0xffda8f,transparent:true});
+    const material=new T.MeshBasicMaterial({color,transparent:true});
     const particles=[];
-    const large=kind==='firework'&&y>2, size=large?28:9;
+    const large=kind==='firework'&&y>2, size=large?32:9;
     for(let j=0;j<size;j++){
       const angle=j*TAU/size, speed=large?2.8:0.5;
       const spark=ball(scene,material,x,y,z,.045,.038,.045,false);
       particles.push({spark,vx:speed*Math.cos(angle),vy:large?2.7*Math.sin(angle):.45+(j%3)*.37,vz:.5*Math.sin(angle)});
     }
     bursts.push({age:0,particles,material});
+  }
+  function trail(from,to,kind){
+    const material=new T.MeshBasicMaterial({color:burstColors[kind],transparent:true});
+    const dots=Array.from({length:5},(_,i)=>ball(scene,material,...from,.07-i*.009,.07-i*.009,.07-i*.009,false));
+    motions.push({age:0,duration:.52,tick(p){
+      for(const [i,dot] of dots.entries()){
+        const t=T.MathUtils.clamp(p*1.20-i*.07,0,1);
+        dot.position.set(T.MathUtils.lerp(from[0],to[0],t),T.MathUtils.lerp(from[1],to[1],t)+Math.sin(t*Math.PI)*.66,
+          T.MathUtils.lerp(from[2],to[2],t));
+      }
+      material.opacity=Math.min(1,p*8,(1-p)*5);
+    },done(){scene.remove(...dots);material.dispose();}});
+  }
+  function halo(x,y,z,kind){
+    const material=new T.MeshBasicMaterial({color:burstColors[kind],transparent:true});
+    const outline=ring(scene,material,x,y+0.025,z,.39,.025);
+    motions.push({age:0,duration:.55,tick(p){
+      outline.scale.setScalar(.72+p*1.4);
+      material.opacity=.85*(1-p);
+    },done(){scene.remove(outline);outline.geometry.dispose();material.dispose();}});
+  }
+  function stageProps(step){
+    if(reduced)return;
+    for(const {kind,indices,remove} of step.props??[]){
+      const pieces=tokenObjects[kind];
+      const retiring=[];
+      for(const [order,index] of indices.entries()){
+        const piece=pieces?.[index];
+        if(!piece?.visible)continue;
+        const {x,y,z}=piece.object.position;
+        halo(x,y,z,kind);
+        if(!remove){
+          burstAt(x,y+.30,z,kind);
+          trail([x,y+.28,z],[stands[step.i]??0,1.67,.58],kind);
+          continue;
+        }
+        const ghost=piece.object.clone();
+        scene.add(ghost);
+        piece.visible=piece.object.visible=false;
+        retiring.push(piece);
+        const scale=ghost.scale.x, rocket=kind==='firework';
+        const color=[0xffb64e,0xff688d,0x87d4f9,0xe1c179][order%4];
+        motions.push({age:-order*(rocket ? .09 : .035),duration:rocket ? .55 : .38,tick(p){
+          if(rocket){
+            ghost.position.set(x+(order%2===0?-.40:.40)*p,y+.20+4.45*p,z-2.5*p);
+            ghost.scale.setScalar(scale*(1-.32*p));
+          }else{
+            ghost.position.set(x,y+.44*Math.sin(p*Math.PI),z+(kind==='audience' ? .86*p : 0));
+            ghost.rotation.z=.45*p;
+            ghost.scale.setScalar(scale*(1-p));
+          }
+        },done(){
+          scene.remove(ghost);
+          burstAt(ghost.position.x,ghost.position.y+.13,ghost.position.z,kind,rocket?color:undefined);
+        }});
+      }
+      if(retiring.length){
+        const surviving=pieces.filter(piece=>piece.visible);
+        const reserve=pieces.filter(piece=>!piece.visible&&!retiring.includes(piece));
+        tokenObjects[kind]=[...surviving,...retiring,...reserve];
+      }
+    }
   }
   const markerMaterial=mat(0xe5a353,{emissive:0xb96d32,emissiveIntensity:.65});
   const markers=pads.map(pad=>ring(pad,markerMaterial,0,.22,0,.965,.024));
@@ -544,7 +606,7 @@ export function createStage(host, slotButtons, cards) {
   }
   new ResizeObserver(resize).observe(host);
   resize();
-  function sync(ids,board,selected,venue,animate=false) {
+  function sync(ids,board,selected,venue,animate=false,step=null) {
     setVenue(venue);
     selecting=Boolean(selected);
     const changes=ids.map((id,i)=>(actors[i]?.id??null)!==id);
@@ -575,7 +637,7 @@ export function createStage(host, slotButtons, cards) {
       const items=contents[kind];
       while(pieces.length<items.length){
         const i=pieces.length;
-        const x=kind==='flower'?-1.35-(i%4)*.63:kind==='bonsai'?1.35+(i%4)*.63:(i%4-1.5)*.58;
+        const x=kind==='flower'?-1.35-(i%4)*.63:kind==='bonsai'?1.35+(i%4)*.63:kind==='audience'?(i-2)*.78:(i%4-1.5)*.58;
         const z=kind==='audience'?3.66:kind==='firework'?2.44+Math.floor(i/4)*.42:2.78+Math.floor(i/4)*.49;
         const model=kind==='butterfly'?butterfly(resources,x,z):kind==='bonsai'?bonsai(resources,x,.01,z):null;
         const object=model?.p??model?.object??(kind==='flower'?flower(resources,x,z):
@@ -588,7 +650,15 @@ export function createStage(host, slotButtons, cards) {
         piece.object.visible=piece.visible=show;
         if(changed){
           piece.life=animate&&!reduced&&show?-.045*(i%4):1;
-          if(animate)burstAt(piece.x,kind==='butterfly'?.84:.22,piece.z,kind);
+          if(animate&&(show||!step)){
+            const y=kind==='butterfly'?1.25:.22;
+            const x=kind==='butterfly'?stands[items[i]]??piece.x:piece.x;
+            burstAt(x,y,piece.z,kind);
+            if(show&&step?.i>=0&&kind!=='butterfly'&&!reduced){
+              halo(x,y,piece.z,kind);
+              trail([stands[step.i],1.5,.58],[x,y,piece.z],kind);
+            }
+          }
         }
         if(!show)return;
         const value=items[i];
@@ -604,7 +674,7 @@ export function createStage(host, slotButtons, cards) {
         if(kind==='butterfly'){
           const x=stands[value]+(i%3-1)*.29;
           if(piece.x!==x){
-            piece.from=piece.object.position.x;
+            piece.from=changed&&step?.flight?stands[step.flight.from]:piece.object.position.x;
             piece.x=x;
             piece.travel=animate&&!reduced?0:1;
           }
@@ -625,16 +695,13 @@ export function createStage(host, slotButtons, cards) {
     const x=stands[i]??0;
     pulse.color.setHex(burstColors[kind]??burstColors.applause);
     pulse.position.set(x,1.65,1.5);
-    pulse.intensity=i<0?34:21;
-    if(i<0&&kind==='firework'){
-      burstAt(-2.15,3.72,-.12,'firework');
-      burstAt(.2,4.18,-.24,'applause');
-      burstAt(2.16,3.82,-.12,'firework');
-    }else burstAt(x,1.36,.66,kind);
+    pulse.intensity=i<0?46:25;
+    if(i>=0||kind!=='firework')burstAt(x,1.36,.66,kind);
   }
   let previous=performance.now();
   renderer.setAnimationLoop(now=>{
-    const dt=Math.min(Math.max((now-previous)/1000,0),.025);previous=now;
+    const elapsed=Math.max((now-previous)/1000,0);previous=now;
+    const dt=Math.min(elapsed,.025);
     const time=now/1000;
     actors.forEach((actor,i)=>{
       markers[i].visible=selecting||active===i||!actor;
@@ -679,6 +746,14 @@ export function createStage(host, slotButtons, cards) {
       wings.forEach((w,j)=>w.rotation.y=(j===0?-1:1)*(.27+.74*Math.sin(t*20+i)));
     });
     pulse.intensity=Math.max(0,pulse.intensity-dt*57);
+    for(let i=motions.length-1;i>=0;i--){
+      const motion=motions[i];
+      motion.age+=elapsed;
+      if(motion.age<0)continue;
+      const progress=Math.min(1,motion.age/motion.duration);
+      motion.tick(progress);
+      if(progress===1){motion.done();motions.splice(i,1);}
+    }
     for(let j=bursts.length-1;j>=0;j--){
       const burst=bursts[j];
       burst.age+=dt;
@@ -700,5 +775,5 @@ export function createStage(host, slotButtons, cards) {
     }
     renderer.render(scene,camera);
   });
-  return {sync,highlight,accent,portraits};
+  return {sync,highlight,accent,stageProps,portraits};
 }

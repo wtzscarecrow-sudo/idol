@@ -153,9 +153,12 @@ export function scoreAct(state){
   for(const [i,id] of state.lineup.entries()){
     if(!id)continue;
     const choice=state.choices[i]??{};
-    const changes=[];
+    const changes=[],props=[];
     const card=cards[id];
     let applause=0,boostUsed=false;
+    function use(kind,indices,remove=false){
+      if(indices.length)props.push({kind,indices,remove});
+    }
     function grant(kind,amount,applyBoost=true){
       if(amount>0&&applyBoost&&!boostUsed&&kind===card.boost){
         amount+=buffs[i];
@@ -188,11 +191,18 @@ export function scoreAct(state){
     switch(id){
       case 'florist': grant('flower',2);break;
       case 'rain':grant('bloom',1);break;
-      case 'flowerShow':grant('applause',Math.min(6,board.flowers.length+bloomCount(board)));break;
-      case 'ornament':grant('applause',bloomCount(board)?4:board.flowers.length?2:0);break;
+      case 'flowerShow':
+        use('flower',board.flowers.map((_,j)=>j));
+        grant('applause',Math.min(6,board.flowers.length+bloomCount(board)));break;
+      case 'ornament':{
+        const best=board.flowers.findIndex(flower=>flower.age===1);
+        if(board.flowers.length)use('flower',[Math.max(0,best)]);
+        grant('applause',best!==-1?4:board.flowers.length?2:0);break;
+      }
       case 'snip':{
         const index=board.flowers.findIndex(flower=>flower.age===1);
         if(index!==-1){
+          use('flower',[index],true);
           board.flowers.splice(index,1);
           record(changes,'flower',-1);
           grant('coin',3);
@@ -202,7 +212,7 @@ export function scoreAct(state){
       case 'tend':{
         grant('flower',1);
         const flower=board.flowers.find(item=>item.age===1&&!item.keep);
-        if(flower){flower.keep=true;record(changes,'protect',1);}
+        if(flower){use('flower',[board.flowers.indexOf(flower)]);flower.keep=true;record(changes,'protect',1);}
         break;
       }
       case 'ignite':addFireworks(state.act+2);break;
@@ -210,7 +220,10 @@ export function scoreAct(state){
         const dates=[...new Set(board.fireworks.filter(date=>date>state.act))].sort((a,b)=>a-b);
         const date=hasChoice(dates,Number(choice.date))?Number(choice.date):dates[0];
         cues.push({id,i,dates,date});
-        if(date!==undefined){board.fireworks[board.fireworks.indexOf(date)]--;record(changes,'advance',1);}
+        if(date!==undefined){
+          const index=board.fireworks.indexOf(date);
+          use('firework',[index]);board.fireworks[index]--;record(changes,'advance',1);
+        }
         break;
       }
       case 'flameSong':
@@ -218,7 +231,9 @@ export function scoreAct(state){
       case 'quick':
         if(state.coins+earned>0&&board.fireworks.length<8){grant('coin',-1);addFireworks(state.act);}
         break;
-      case 'paper':grant('coin',Math.min(2,board.fireworks.length));break;
+      case 'paper':
+        use('firework',board.fireworks.slice(0,2).map((_,j)=>j));
+        grant('coin',Math.min(2,board.fireworks.length));break;
       case 'planter':{
         const offers=marketPots(state.act,state.branch);
         const pot=hasChoice(offers,choice.pot)?choice.pot:offers.find(type=>!board.pots.includes(type))??offers[0];
@@ -232,7 +247,9 @@ export function scoreAct(state){
         const pot=hasChoice(offers,choice.pot)?choice.pot:offers[0];
         cues.push({id,i,offers:duplicate?offers:[],pot});
         if(duplicate&&pot){
-          board.pots.splice(board.pots.lastIndexOf(duplicate),1);
+          const index=board.pots.lastIndexOf(duplicate);
+          use('bonsai',[index],true);
+          board.pots.splice(index,1);
           addPot(pot);
           record(changes,'bonsai',-1);
         }
@@ -240,13 +257,16 @@ export function scoreAct(state){
       }
       case 'judge':{
         const kinds=countPots(board);
+        use('bonsai',[...new Set(board.pots)].map(type=>board.pots.indexOf(type)));
         grant('applause',kinds+Number(kinds===4));
         break;
       }
       case 'vendor':{
         const duplicate=repeatedPots(board)[0];
         if(duplicate){
-          board.pots.splice(board.pots.lastIndexOf(duplicate),1);
+          const index=board.pots.lastIndexOf(duplicate);
+          use('bonsai',[index],true);
+          board.pots.splice(index,1);
           record(changes,'bonsai',-1);
           grant('coin',2);
         }
@@ -256,10 +276,15 @@ export function scoreAct(state){
         if(!board.pots.includes('兰'))addPot('兰');
         break;
       case 'four':
-        if(countPots(board)===4)grant('applause',6);
+        if(countPots(board)===4){
+          use('bonsai',varieties.map(type=>board.pots.indexOf(type)));
+          grant('applause',6);
+        }
         break;
       case 'dancer':grant('applause',3*passed.filter((value,j)=>value&&j!==i).length);break;
-      case 'perch':if(board.butterflies.includes(i))grant('applause',3);break;
+      case 'perch':if(board.butterflies.includes(i)){
+        use('butterfly',[board.butterflies.indexOf(i)]);grant('applause',3);
+      }break;
       case 'peep':if(passed[i])grant('coin',2);break;
       case 'balls':grant('audience',2);break;
       case 'rope':grant('audience',1);break;
@@ -268,18 +293,22 @@ export function scoreAct(state){
       case 'tea':if(temperature>=1)grant('coin',2);break;
       case 'jester':
         grant('applause',board.audience);
+        use('audience',Array.from({length:Math.min(2,board.audience)},(_,j)=>board.audience-1-j),true);
         grant('audience',-2);
         break;
     }
     grant('applause',card.base,false);
     points+=applause;
-    steps.push(snapshot({id,i,phase:'main',changes}));
+    steps.push(snapshot({id,i,phase:'main',changes,props}));
   }
-  const fired=board.fireworks.filter(date=>date<=state.act).length;
+  const launching=board.fireworks.flatMap((date,i)=>date<=state.act?[i]:[]);
+  const fired=launching.length;
   if(fired){
     board.fireworks=board.fireworks.filter(date=>date>state.act);
     points+=fired*4;
-    steps.push(snapshot({id:null,i:-1,phase:'close',cue:'firework',changes:[{kind:'firework',amount:-fired},{kind:'applause',amount:fired*4}]}));
+    steps.push(snapshot({id:null,i:-1,phase:'close',cue:'firework',
+      props:[{kind:'firework',indices:launching,remove:true}],
+      changes:[{kind:'firework',amount:-fired},{kind:'applause',amount:fired*4}]}));
     for(const {id,i} of settledLater){
       const base=id==='flameSong'?fired:fired>=2?5:0;
       if(!base)continue;

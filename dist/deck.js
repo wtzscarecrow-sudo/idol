@@ -1,4 +1,4 @@
-import {cards} from './rules.js?v=7';
+import {cards} from './rules.js?v=8';
 
 export const deckSize=18;
 export const copyLimit=4;

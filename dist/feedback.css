@@ -48,6 +48,15 @@ dialog .goal-chip .icon{filter:brightness(.60) saturate(1.3)}
 .stage-callout .effects-line{justify-content:center}
 .stage-callout .effect-chip{background:#34241bf2;border:1px solid #c1955f;color:#ffe3ab;padding:3px 6px;font-weight:700;font-size:15px}
 .stage-callout .effect-chip[data-negative="true"]{background:#542c25e8;border-style:dashed}
+.stage-callout:has(.callout-action){padding:7px 13px 9px;border-bottom:2px solid var(--cue-color);border-radius:4px;background:linear-gradient(180deg,#211610ed,#35241bcb)}
+.callout-action{display:flex;align-items:center;justify-content:center;gap:4px;color:var(--cue-color);font-size:12px;margin-bottom:4px}
+.callout-action .icon{color:inherit}
+.flight.effect-chip{background:#382515;border-color:var(--cue-color);box-shadow:0 0 15px var(--cue-color);padding:4px 9px;font-weight:700}
+.meter[data-surged="true"]{animation:meter-surge .66s ease-out}
+.score-box[data-surged="true"]{animation:tally-glow .53s ease-out}
+@keyframes meter-surge{30%{box-shadow:0 0 19px #c6d280;border-color:#e0ed97}}
+@keyframes tally-glow{35%{filter:drop-shadow(0 0 8px #ffb545)}}
+@media(prefers-reduced-motion:reduce){.meter[data-surged="true"],.score-box[data-surged="true"]{animation:none}}
 .stage-callout[data-kind="reward"]{padding:8px 22px;border:1px solid #efb660;background:radial-gradient(ellipse at 50% 0,#9c5730,#55291e);border-radius:4px;box-shadow:0 0 30px #ef95356e}
 .stage-callout[data-kind="reward"] .callout-name{color:#ffdea1}
 @keyframes callout-in{from{opacity:0;transform:translate(-50%,-35%) scale(.78)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}

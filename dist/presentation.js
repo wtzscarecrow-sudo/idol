@@ -87,7 +87,7 @@ export function feedback(stage,host){
     const bounds=element.getBoundingClientRect();
     return {x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2};
   };
-  function show(name,changes,anchor,reward=false){
+  function show(name,changes,anchor,{reward=false,action='',theme='applause'}={}){
     const bounds=stage.getBoundingClientRect();
     const pos=anchor?center(anchor):{x:bounds.x+bounds.width*.5,y:bounds.y+bounds.height*.44};
     pos.y-=anchor?Math.min(118,bounds.height*.22):0;
@@ -95,11 +95,16 @@ export function feedback(stage,host){
     const callout=document.createElement('div');
     callout.className='stage-callout';
     if(reward)callout.dataset.kind='reward';
+    callout.style.setProperty('--cue-color',symbols[theme][2]);
     callout.style.left=(pos.x-bounds.left)+'px';
     callout.style.top=(pos.y-bounds.top)+'px';
     const title=document.createElement('b');
     title.className='callout-name';title.textContent=name;
     callout.append(title);
+    if(action){
+      const label=document.createElement('span');
+      label.className='callout-action';label.append(icon(theme),action);callout.append(label);
+    }
     if(changes.length)callout.append(changesLine(changes));
     host.replaceChildren(callout);
     if(reduced)return;
@@ -121,8 +126,9 @@ export function feedback(stage,host){
     }
   }
   function fly(changes,targets){
-    if(reduced||!host.firstChild)return;
+    if(reduced||!host.firstChild)return Promise.resolve();
     const from=center(host.firstChild);
+    const flights=[];
     for(const {kind,amount} of changes){
       const target=targets(kind);
       if(!target||amount<0)continue;
@@ -133,15 +139,17 @@ export function feedback(stage,host){
       marker.ariaHidden='true';
       marker.style.left=from.x+'px';
       marker.style.top=from.y+'px';
+      marker.style.setProperty('--cue-color',symbols[kind][2]);
       document.body.append(marker);
       const dx=to.x-from.x,dy=to.y-from.y;
       const animation=marker.animate([
         {transform:'translate(-50%,-50%) scale(.8)',opacity:0},
         {transform:'translate(calc(-50% + '+dx*.3+'px),calc(-50% + '+(dy*.25-32)+'px)) scale(1.12)',opacity:1,offset:.4},
-        {transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+dy+'px)) scale(.72)',opacity:.75},
-      ],{duration:480,easing:'cubic-bezier(.3,.65,.44,1)'});
-      animation.finished.then(()=>marker.remove(),()=>marker.remove());
+        {transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+dy+'px)) scale(.55)',opacity:.95},
+      ],{duration:540,easing:'cubic-bezier(.28,.68,.36,1)'});
+      flights.push(animation.finished.then(()=>marker.remove(),()=>marker.remove()));
     }
+    return Promise.all(flights);
   }
   return {show,fly,clear:()=>host.replaceChildren()};
 }
