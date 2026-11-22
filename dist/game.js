@@ -1,10 +1,11 @@
-import { cards, events, fresh, goalScore, heat, nextBoard, route, scoreAct, slots, styles, varieties } from './rules.js?v=8';
-import { clearStage, copyLimit, deckSize, drawCards, presets, startDeck, validDeck } from './deck.js?v=8';
+import { applauseUnit, audienceFactor, cards, events, fresh, goalScore, heatPercent, nextBoard, route, scoreAct, slots, styles, varieties } from './rules.js?v=16';
+import { clearStage, copyLimit, deckSize, drawCards, presets, startDeck, validDeck } from './deck.js?v=16';
 import { createStage } from './stage.js?v=8';
-import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=8';
+import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=13';
 
 const byId=id=>document.getElementById(id);
-const key='dengxia-ouxi-save-v9';
+const key='dengxia-ouxi-save-v11';
+const previousDeckKey='dengxia-ouxi-save-v9-deck';
 const theatre=byId('theatre'), stage=byId('stage'), hand=byId('hand'), dialog=byId('dialog'), dialogBody=byId('dialog-body');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const cn=['一','二','三','四','五'];
@@ -22,7 +23,29 @@ const load=()=>{
       if(data.started&&validDeck(data.deck)&&copies.length===deckSize&&new Set(copies).size===deckSize&&
          copies.every(copy=>Number.isInteger(copy)&&copy>=0&&copy<deckSize)&&
          new Set(onStage).size===onStage.length&&onStage.every(copy=>data.hand.includes(copy))&&
-         data.history.length===data.act+Number(data.ready||data.finished))return data;
+         data.history.length===data.act+Number(data.ready||data.finished)){
+        if(data.applauseUnit!==applauseUnit){
+          data.applause=Math.round(data.applause*applauseUnit);
+          for(const act of data.history){
+            act.score=Math.round(act.score*applauseUnit);
+            for(const path of act.progress??[]){
+              for(const objective of path){
+                objective.value=Math.round(objective.value*applauseUnit);
+                objective.target*=applauseUnit;
+              }
+            }
+            // Old history showed only the incremental heat bonus in its closing row.
+            for(const step of act.steps??[]){
+              if(step.cue==='audience'){
+                for(const change of step.changes)change.amount=Math.round(change.amount*applauseUnit);
+                step.cue='legacyAudience';
+              }
+            }
+          }
+          data.applauseUnit=applauseUnit;
+        }
+        return data;
+      }
     }
   } catch {}
   return fresh();
@@ -32,7 +55,7 @@ let plannedFlights=[];
 let draftStyle='garden';
 let draft={};
 try {
-  const saved=JSON.parse(localStorage.getItem(key+'-deck'));
+  const saved=JSON.parse(localStorage.getItem(key+'-deck')??localStorage.getItem(previousDeckKey));
   if(validDeck(saved))for(const id of saved)draft[id]=(draft[id]??0)+1;
 } catch {}
 function persist(){
@@ -44,6 +67,7 @@ const cardId=copy=>copy===null?null:state.deck[copy];
 const cast=()=>state.lineup.map(cardId);
 const forecastAct=()=>scoreAct({...state,lineup:cast(),choices:state.lineup.map(copy=>state.choices[copy])});
 const text=(id,value)=>{byId(id).textContent=value;};
+const multiplier=percent=>'×'+audienceFactor(percent);
 const delay=time=>new Promise(resolve=>setTimeout(resolve,reduced?Math.min(260,time):time));
 const click=(id,fn)=>byId(id).addEventListener('click',fn);
 
@@ -154,7 +178,7 @@ function makeCard(copy){
   info.className='card-info';
   info.innerHTML='<span class="card-name">'+card.name+'<small data-style="'+card.style+'">'+styles[card.style].name+'</small></span>';
   info.append(cardRules(card));
-  button.title='上台即得 '+card.base+' 喝彩。'+card.text;
+  button.title='上台即得 '+card.base+' 基础喝彩。'+card.text;
   button.append(info);
   button.addEventListener('click',()=>togglePlacement(copy));
   button.addEventListener('dragstart',e=>{
@@ -176,7 +200,7 @@ function syncTokens(board,changes=[],step=null){
     firework:dates.length?'待放 '+dates.join('、'):'待放 0',
     bonsai:counts.map(([pot,n])=>pot+(n>1?'×'+n:n?'':'□')).join(' '),
     butterfly:slots.map((slot,i)=>slot[0]+board.butterflies.filter(seat=>seat===i).length).join(' '),
-    audience:'观众 '+board.audience+' · '+['低','中','高'][heat(board.audience)]+'热度',
+    audience:'观众 '+board.audience+' · '+multiplier(heatPercent(board.audience)),
   };
   for(const [kind,label] of Object.entries(labels)){
     let item=byId('token-'+kind);
@@ -244,28 +268,24 @@ function goalStatus(paths,anticipated=paths,settled=null){
   status.dataset.hit=String(settled??amount===100);
   status.textContent=settled===true?'✓ 已达成':settled===false?'目标未达成':playing?(amount===100?'已满足':amount+'%'):'预计 '+predicted+'%';
 }
-function balances(score,coins,changes=[]){
-  text('applause',score);text('coins',coins);
+function balance(score,changes=[]){
+  text('applause',score);
   updateMeter(byId('tour-meter'),score,goalScore);
-  for(const [el,kind] of [[byId('applause'),'applause'],[byId('coins'),'coin']]){
-    if(!changes.some(change=>change.kind===kind))continue;
-    el.classList.remove('balance-bump');
-    void el.offsetWidth;
-    el.classList.add('balance-bump');
-  }
+  if(!changes.some(change=>change.kind==='applause'))return;
+  const tally=byId('applause');
+  tally.classList.remove('balance-bump');
+  void tally.offsetWidth;
+  tally.classList.add('balance-bump');
 }
 function payout(reward){
-  const result=[];
-  if(reward.score)result.push({kind:'applause',amount:reward.score});
-  if(reward.coins)result.push({kind:'coin',amount:reward.coins});
-  return result;
+  return reward.score?[{kind:'applause',amount:reward.score}]:[];
 }
 function rewardLabel(event,paid=false){
   const label=byId('event-reward');
   label.dataset.paid=String(paid);
-  label.replaceChildren(paid?'已领取':'幕末奖励',changesLine(payout({score:event.bonus,coins:event.coin})));
+  label.replaceChildren(paid?'已领取':'幕末奖励',changesLine(payout({score:event.bonus})));
 }
-const closingTitle={firework:'收场 · 烟花',audience:'收场 · 观众热度'};
+const closingTitle={firework:'收场 · 烟花',audience:'收场 · 喝彩入账',legacyAudience:'收场 · 热度加分'};
 function forecastSlots(steps=[],settled=false){
   const cue=byId('forecast');
   cue.replaceChildren();
@@ -316,7 +336,13 @@ function update(){
   text('event-title',e.name);
   text('event-goal',e.goal);
   rewardLabel(e);
-  balances(state.applause,state.coins);
+  balance(state.applause);
+  const hasCast=lineup.some(Boolean);
+  const previewHeat=canEdit()&&hasCast;
+  const lastAct=state.ready||state.finished?state.history.at(-1):null;
+  const percent=previewHeat?forecast.audiencePercent:lastAct?.audiencePercent??heatPercent(state.board.audience);
+  text('heat-label',previewHeat?'预估收场热度':lastAct?'本幕收场热度':'观众热度');
+  text('heat-multiplier',multiplier(percent));
   text('score-target',' / '+goalScore);
   const handHint=lineup.includes(null)?'点击手牌依序上场，再点撤下':'站位已满，再点已上场的牌可撤下';
   text('hand-hint',canEdit()?handHint:'');
@@ -365,7 +391,7 @@ function update(){
     }
     rewardLabel(e,last.hit);
     text('cue-title','本幕结算');
-    text('forecast-summary','+'+last.score+' 喝彩 · '+(last.coins>=0?'+':'')+last.coins+' 赏钱');
+    text('forecast-summary','+'+last.score+' 喝彩'+(last.keptAudience?' · 留客 +1':''));
     forecastSlots(last.steps,true);
     if(state.finished)text('caption',state.applause>=goalScore?'满堂彩 · '+state.applause+' 喝彩':'巡演谢幕 · '+state.applause+' / '+goalScore+' 喝彩');
     else text('caption',verdict+' · '+last.score+' 喝彩');
@@ -374,8 +400,9 @@ function update(){
   if(!playing)text('caption','');
   goalStatus(forecast.start,forecast.progress);
   text('cue-title',playing?'逐位结算':'排演预估');
-  const pending=forecast.steps.some(step=>step.cue==='firework');
-  text('forecast-summary',!state.started?'开局抽 6 张':playing?'本幕 +0 喝彩':forecast.steps.length?'预计 +'+forecast.score+' 喝彩'+(pending?' · 今幕有烟花':''):'先安排木偶');
+  const points=forecast.progress[0][0].value;
+  const breakdown=forecast.baseApplause+' 基础 '+multiplier(forecast.audiencePercent)+' = '+points+' 喝彩'+(forecast.reward.score?' · 戏帖 +'+forecast.reward.score:'');
+  text('forecast-summary',!state.started?'开局抽 6 张':playing?'本幕 +0 喝彩':hasCast?breakdown:'先安排木偶');
   forecastSlots(forecast.steps);
 }
 
@@ -392,7 +419,7 @@ function sound(kind){
       bloom:[523,659,784],protect:[523,698],move:[510,765,1020],bonsai:[261,392,523],
       firework:[127,205,330],advance:[294,392],audience:[262,330,440],spend:[370,220],
       tally:[659,880],target:[392,523,659],lamp:[329,493,659],beat:[149,202],
-      coin:[740,987],applause:[393,523],tap:[290],
+      applause:[393,523],tap:[290],
     };
     const pitches=cues[kind]??cues.tap;
     pitches.forEach((pitch,i)=>{
@@ -475,7 +502,7 @@ async function perform(){
   if(theatreBounds.top<0){
     theatre.scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});
   }
-  const target=kind=>kind==='applause'?byId('applause'):byId('coins');
+  const target=()=>byId('applause');
   effects.show('锣响 · 开戏',[],null,{action:'帘前亮相'});
   text('caption','锣响，开戏');
   await delay(560);
@@ -488,7 +515,8 @@ async function perform(){
     const title=step.id?cards[step.id].name:closingTitle[step.cue];
     text('caption',title+' · '+summary);
     const cue=stageCue(step);
-    const payouts=step.changes.filter(change=>change.amount>0&&['applause','coin'].includes(change.kind));
+    const closing=step.cue==='audience';
+    const payouts=closing?step.changes:[];
     effects.show(title,step.changes,slotButtons[current],cue);
     scene.accent(current,cue.theme);
     if(step.changes.some(change=>change.amount<0&&change.kind!=='firework'))sound('spend');
@@ -498,17 +526,18 @@ async function perform(){
     const fired=step.cue==='firework'?-step.changes[0].amount:0;
     await delay(fired?620+(fired-1)*90:cue.theme==='applause'?210:390);
     await effects.fly(payouts,target);
-    balances(state.applause+step.points,state.coins+step.coins,step.changes);
+    if(closing)balance(state.applause+step.objectives[0][0].value,step.changes);
     if(payouts.some(change=>change.kind==='applause')){
       sound('tally');surge(byId('applause').closest('.score-box'));
     }
-    text('forecast-summary','本幕 +'+step.points+' 喝彩');
-    goalStatus(step.objectives);
-    const justMet=!met&&step.points>=e.target;
+    text('forecast-summary',closing?step.baseApplause+' 基础 '+multiplier(result.audiencePercent)+' = '+step.objectives[0][0].value+' 喝彩':'本幕 '+step.baseApplause+' 基础喝彩');
+    if(closing)goalStatus(step.objectives);
+    text('heat-multiplier',multiplier(heatPercent(step.board.audience)));
+    const justMet=closing&&!met&&result.hit;
     if(justMet){
       met=true;
       sound('target');surge(byId('act-meter'));
-      text('caption','本幕目标达成 · '+step.points+' 喝彩');
+      text('caption','本幕目标达成 · '+step.objectives[0][0].value+' 喝彩');
     }
     await delay(justMet?290:145);
   }
@@ -519,11 +548,12 @@ async function perform(){
     scene.accent(-1,'applause');sound('win');
     await delay(330);
     await effects.fly(reward,target);
-    balances(state.applause+result.score,state.coins+result.coins,reward);
+    balance(state.applause+result.score,reward);
     text('forecast-summary','本幕 +'+result.score+' 喝彩');
     goalStatus(result.progress,result.progress,true);
     rewardLabel(e,true);
-    text('caption','戏帖奖励 · +'+result.reward.score+' 喝彩'+(result.reward.coins?' · +'+result.reward.coins+' 赏钱':''));
+    text('caption','戏帖奖励 · +'+result.reward.score+' 喝彩'+(result.keptAudience?' · 为下幕留客 +1':''));
+    if(result.keptAudience)syncTokens(result.board,[{kind:'audience',amount:1}]);
     surge(byId('applause').closest('.score-box'));
     await delay(370);
   }else{
@@ -531,8 +561,9 @@ async function perform(){
     goalStatus(result.progress,result.progress,false);
     await delay(520);
   }
-  state.board=result.board;state.coins+=result.coins;state.applause+=result.score;
-  state.history.push({event:e.name,location:e.place,hit:result.hit,score:result.score,coins:result.coins,
+  state.board=result.board;state.applause+=result.score;
+  state.history.push({event:e.name,location:e.place,hit:result.hit,score:result.score,
+    audiencePercent:result.audiencePercent,keptAudience:result.keptAudience,
     lineup:cast().filter(Boolean).map(id=>cards[id].name),progress:result.progress,
     steps:result.steps.map(({i,id,changes,cue})=>({i,id,changes,cue}))});
   clearStage(state);
@@ -649,17 +680,18 @@ function modalContent(type){
   if(type==='help'){
     text('dialog-title','怎样排一台戏');
     row('看戏帖，排站位','点击手牌，按开场、过场、收场补第一个空位。再点已上场的牌或对应站位即可撤下。拖动手牌可指定站位，已上场的牌拖到其他站位可换位。');
-    const legend=row('读能力图标','金色 ✦ 是上台即得的基础喝彩。下一行是额外技能。+ 表示获得，− 表示消耗，→ 表示转化或满足条件后的效果。');
+    const legend=row('读能力图标','卡上的金色 ✦ 和技能里的喝彩都是基础喝彩。+ 表示获得，− 表示消耗，→ 表示转化或满足条件后的效果。');
     const keyLine=document.createElement('div');keyLine.className='goal-detail';
-    for(const kind of ['bud','bloom','firework','bonsai','butterfly','audience','coin','applause']){
+    for(const kind of ['bud','bloom','firework','bonsai','butterfly','audience','applause']){
       const item=document.createElement('span');item.className='goal-chip';item.append(icon(kind),effectName(kind));keyLine.append(item);
     }
     legend.append(keyLine);
     row('按站位结算','开演前按站位处理引蝶、赶蝶，再由开场到收场结算能力，最后释放预定烟花。目标条的斜纹是预估，实色是实际得分。');
     for(const style of Object.values(styles))row(style.name,style.summary);
-    row('花期与观众','初绽的花下一幕盛开，盛花下一幕枯萎。收场时按照剩余观众加分：0–1 名 +0，2–3 名 +1，4–5 名 +2。');
+    row('观众热度','用收场人数为整幕喝彩乘一次倍率：卡面数字是基础喝彩。0 到 5 人的整数系数依次是 ×20、×21、×22、×23、×25、×27。整幕基础喝彩乘一次后判断戏帖，奖励随后入账。达标时若不足 3 人，再为下一幕留 1 人。');
+    row('花期','初绽的花下一幕盛开，盛花下一幕枯萎。');
     row('抽牌与离场','开局抽 6 张，后四幕各抽 3 张。每幕最多演 3 张，演过的牌本局离场；没演的留在手里。相同角色的不同牌可以各上场一次。');
-    row('五幕谢幕','累计至少 '+goalScore+' 喝彩可获满堂彩。第三幕前可从巡演图换路线，赏钱可供急火童等技能使用。');
+    row('五幕谢幕','累计至少 '+goalScore+' 喝彩可获满堂彩。错过单幕目标后仍可继续演出。第三幕前可从巡演图换路线。');
   } else if(type==='presets'){
     text('dialog-title','选择开局牌组');
     const grid=document.createElement('div');
@@ -718,7 +750,7 @@ function modalContent(type){
     text('dialog-title','演出记录');
     if(!state.history.length)row('还未开戏','完成一幕，便可在这里回看阵容和得分。');
     for(const [i,last] of state.history.entries())row('第'+cn[i]+'幕 · '+last.event,
-      last.lineup.join('、')+' · '+(last.hit?'目标达成':'目标未达成')+' · '+last.score+' 喝彩 · '+last.coins+' 赏钱');
+      last.lineup.join('、')+' · '+(last.hit?'目标达成':'目标未达成')+' · '+last.score+' 喝彩'+(last.keptAudience?' · 留客 +1':''));
   }
 }
 function openModal(type){

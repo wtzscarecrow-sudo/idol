@@ -1,4 +1,4 @@
-import {cards} from './rules.js?v=8';
+import {cards} from './rules.js?v=16';
 
 export const deckSize=18;
 export const copyLimit=4;
@@ -7,9 +7,9 @@ const drawPerAct=3;
 
 const presetCounts={
   garden:{florist:4,rain:4,flowerShow:4,ornament:2,snip:2,tend:2},
-  fire:{ignite:4,quick:4,flameSong:4,fuse:2,paper:3,double:1},
-  gardenware:{planter:4,orchid:4,judge:4,exchange:4,four:2},
-  wings:{lure:4,herd:4,dancer:4,fan:1,perch:4,peep:1},
+  fire:{ignite:3,quick:3,flameSong:4,fuse:3,paper:3,double:2},
+  gardenware:{planter:4,orchid:2,judge:4,exchange:3,four:3,vendor:2},
+  wings:{lure:4,herd:4,dancer:2,fan:2,perch:4,peep:2},
   circus:{balls:4,rope:4,jester:4,warm:3,walker:2,tea:1},
 };
 

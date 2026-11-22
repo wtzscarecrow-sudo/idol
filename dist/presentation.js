@@ -1,13 +1,12 @@
 const symbols = {
   flower:['❀','花','#ff9aa7'],bud:['❀','初绽的花','#ff9aa7'],butterfly:['⋈','蝴蝶','#ffbd68'],lamp:['','灯盏','#ffd276'],
-  beat:['◎','锣点','#d6a6ff'],coin:['●','赏钱','#ffcf78'],applause:['✦','喝彩','#ffe49c'],
+  beat:['◎','锣点','#d6a6ff'],applause:['✦','喝彩','#ffe49c'],
   slot:['▣','站位','#ead5a4'],
   bloom:['✿','盛开','#ff98ac'],protect:['❧','护花','#e6aaba'],
   firework:['✺','烟花','#ff9e69'],advance:['◷','提前','#ffc184'],
   bonsai:['♧','盆景','#a1cf86'],move:['↝','蝶移动','#ffc792'],audience:['♟','观众','#cbb6f7'],
 };
-const objectiveKinds = {summoned:'butterfly',earned:'coin',beats:'beat',points:'applause',opening:'slot'};
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const objectiveKinds = {summoned:'butterfly',beats:'beat',points:'applause',opening:'slot'};
 
 export const effectName = kind => symbols[kind][1];
 export function icon(kind){
@@ -38,7 +37,7 @@ export function cardRules(card){
   wrapper.className='card-actions';
   const base=chip('applause',card.base);
   base.classList.add('base-score');
-  base.title='上台即得 '+card.base+' 喝彩';
+  base.title='上台即得 '+card.base+' 基础喝彩';
   base.setAttribute('aria-label',base.title);
   const skill=document.createElement('span');
   skill.className='card-skill';
@@ -49,14 +48,18 @@ export function cardRules(card){
       continue;
     }
     const symbol=icon(part);
-    symbol.title=effectName(part);
+    symbol.title=part==='applause'?'基础喝彩':effectName(part);
     skill.append(symbol);
   }
   wrapper.append(base,skill);
   return wrapper;
 }
 export function progressPercent(paths){
-  return Math.max(...paths.map(path=>Math.round(100*path.reduce((sum,req)=>sum+Math.min(1,req.value/req.target),0)/path.length)));
+  return Math.max(...paths.map(path=>{
+    if(path.every(req=>req.value>=req.target))return 100;
+    const progress=path.reduce((sum,req)=>sum+Math.min(1,req.value/req.target),0)/path.length;
+    return Math.min(99,Math.round(100*progress));
+  }));
 }
 export function updateMeter(meter,value,maximum,forecast=value){
   const capped=Math.min(value,maximum);
@@ -83,6 +86,7 @@ export function goalDetail(container,paths){
   }
 }
 export function feedback(stage,host){
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const center=(element)=>{
     const bounds=element.getBoundingClientRect();
     return {x:bounds.x+bounds.width/2,y:bounds.y+bounds.height/2};

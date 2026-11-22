@@ -16,7 +16,7 @@
 .effect-chip{display:inline-flex;align-items:center;gap:3px;white-space:nowrap;padding:1px 4px;border:1px solid #a0855a55;border-radius:3px;line-height:1.3;font-variant-numeric:tabular-nums}
 .effect-chip[data-negative="true"]{border-style:dashed;background:#b66f491c}
 .icon{display:inline-grid;place-items:center;color:var(--icon);width:1.05em;height:1.1em;line-height:1;font-family:Georgia,serif;font-style:normal;font-weight:700;font-size:1.12em;flex:none}
-.icon[data-kind="flower"]{--icon:#f5a2ac}.icon[data-kind="butterfly"]{--icon:#f3cc83}.icon[data-kind="lamp"]{--icon:#ffc56c}.icon[data-kind="beat"]{--icon:#d8baf8}.icon[data-kind="coin"]{--icon:#f1c879}.icon[data-kind="applause"]{--icon:#ffda8f}.icon[data-kind="slot"]{--icon:#e1c699}
+.icon[data-kind="flower"]{--icon:#f5a2ac}.icon[data-kind="butterfly"]{--icon:#f3cc83}.icon[data-kind="lamp"]{--icon:#ffc56c}.icon[data-kind="beat"]{--icon:#d8baf8}.icon[data-kind="applause"]{--icon:#ffda8f}.icon[data-kind="slot"]{--icon:#e1c699}
 .icon[data-kind="lamp"]::before{content:"";width:.7em;height:.75em;border-radius:32%;background:currentColor;box-shadow:0 -.23em 0 -.13em currentColor,0 .24em 0 -.14em currentColor}
 .icon[data-kind="butterfly"]{font-size:1.3em}
 .token .icon{color:var(--icon)}
@@ -41,7 +41,7 @@ dialog .goal-chip .icon{filter:brightness(.60) saturate(1.3)}
 .forecast-line .effect-chip{background:#d5a46415}
 .balance-bump{animation:balance-bump .53s ease-out}
 @keyframes balance-bump{35%{transform:scale(1.24);color:#9b491f;text-shadow:0 0 7px #ffc369}100%{transform:scale(1)}}
-#applause,#coins{display:inline-block}
+#applause{display:inline-block}
 .stage-effects{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2}
 .stage-callout{position:absolute;transform:translate(-50%,-50%);text-align:center;white-space:nowrap;max-width:100%;animation:callout-in .32s both;color:#fff0cc;filter:drop-shadow(0 3px 10px #20130f)}
 .stage-callout .callout-name{display:block;font:700 clamp(17px,2vw,27px) var(--serif);text-shadow:0 2px 6px #20130f,0 0 12px #9b4728;margin-bottom:4px}
