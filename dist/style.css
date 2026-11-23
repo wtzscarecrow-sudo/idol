@@ -164,3 +164,8 @@ dialog::backdrop{background:#130d09b9}
   .slot{width:92px;min-width:0;padding:4px;font-size:12px}
   .slot small{font-size:10px;white-space:normal}
 }
+
+#hand-filter[hidden]{display:none}
+#mode-picker{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#f0d5a0}
+#mode-picker[hidden]{display:none}
+#tour-mode{background:#34251c;color:#f7e2ba;border:1px solid #826448;border-radius:6px;padding:5px 8px}

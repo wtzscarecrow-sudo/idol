@@ -5,10 +5,10 @@
 //   puzzle      —— 排戏幕：台本要素（遇仙），或人物分支判定 judge（风雪归人）。
 // 分支判定 judge：true（真实版本）/ official（官方版本·有意义的错版）/ flop（演砸+定向提示）。
 // 体验流程：敲锣开场（仪式）→ 演出幕/排戏幕 → [剪影峰值] → 散场戏簿。
-import { applauseUnit, audienceFactor, cards, nextBoard, scoreAct, slots, tones } from './rules.js?v=12';
+import { applauseUnit, audienceFactor, cards, nextBoard, scoreAct, slots, tones } from './rules.js?v=17';
 import { scenarios, typeLabels, cueNames, backdropNames, gauzeNames, venueOf } from './scenarios.js?v=12';
 import { createStage } from './stage.js?v=12';
-import { cardRules, effectName, feedback, icon, updateMeter } from './presentation.js?v=12';
+import { cardRules, effectName, feedback, icon, updateMeter } from './presentation.js?v=17';
 
 const byId=id=>document.getElementById(id);
 const stage=byId('stage'), hand=byId('hand'), dialog=byId('dialog'), dialogBody=byId('dialog-body');

@@ -1,5 +1,5 @@
 export const applauseUnit=1;
-export const goalScore=140;
+export const goalScore=700;
 export const actCount=3;
 export const slots=['开场','过场','收场'];
 export const tones=[
@@ -9,62 +9,70 @@ export const tones=[
 ];
 export const varieties=['梅','兰','竹','菊'];
 export const styles={
-  garden:{name:'花卉',summary:'花留在台上，种花后赏花；剪花能换来更多喝彩。',glyph:'花',colors:[0xa5443b,0x658054,0x9b5265,0x8e4560,0x657d45,0xa97648]},
-  fire:{name:'烟花',summary:'点火留到下幕，烟花每束得 3 基础喝彩；伴焰和双响利用齐放。',glyph:'焰',colors:[0xb65b38,0x8c4d37,0xa6534a,0xc97036,0x905745,0xa84531]},
-  gardenware:{name:'盆景',summary:'自动补缺少的品种，摆盆后评景；不必手选梅兰竹菊。',glyph:'景',colors:[0x667b51,0x71704b,0x3a6651,0x826347,0x557081,0x56634a]},
-  wings:{name:'蝴蝶',summary:'蝴蝶留在台上，引蝶后观蝶；没有飞行路线和落点选项。',glyph:'蝶',colors:[0x4a7472,0x72527b,0x527587,0x884e81,0xa76a7f,0x49696a]},
-  circus:{name:'杂耍',summary:'开演前自动变色、换色或替邻席调色，帮助混合戏班配色招客。',glyph:'彩',colors:[0x976048,0x43807c,0xc08242,0x54698d,0x987344,0xb14c4b]},
+  garden:{name:'花蝶',summary:'添花能接赏花和剪花，也能交给下一席引蝶。',glyph:'花',color:0x8e5565},
+  fire:{name:'烟花',summary:'每束烟花得 2 基础喝彩。可以本幕齐放，也可以留到下幕。',glyph:'焰',color:0xa85639},
+  gardenware:{name:'盆景',summary:'补齐梅兰竹菊，或提前评景、卖盆。',glyph:'景',color:0x667b51},
+  circus:{name:'杂耍',summary:'按邻席安排搭档、修正颜色，也能接上其他流派的道具技能。',glyph:'彩',color:0x54698d},
+  neutral:{name:'通用',summary:'提供稳定喝彩，或把两派木偶接在一起。',glyph:'偶',color:0x956143},
 };
-
-// 每派各有两只朱、青、金；颜色与艺种独立。卡面只保留基础贡献和一项技能。
 const groups={
   garden:[
-    ['florist','采花娘',2,'+2{flower}','留下 2 朵花。','flower'],
-    ['rain','求雨婆',2,'+1{flower}','留下 1 朵花。','flower'],
-    ['flowerShow','赏花伶',2,'每朵{flower}+1{applause}（最多 4）','每朵花额外得 1 基础喝彩，最多 4。','fan'],
-    ['ornament','簪花童',2,'有{flower} +3{applause}','台上有花，额外得 3 基础喝彩。','flower'],
-    ['snip','剪花客',2,'−1{flower} → +4{applause}','剪下一朵花，额外得 4 基础喝彩。','flower'],
-    ['tend','护花匠',2,'+1{flower}','留下 1 朵花。','flower'],
+    ['florist','采花娘',2,'留下两朵花。','flower'],
+    ['tend','护花匠',2,'留一朵花；在收场席留两朵。','flower'],
+    ['flowerShow','赏花伶',2,'台上每朵花 +1，最多 +4。','fan'],
+    ['snip','剪花客',2,'剪一朵花，+4。','flower'],
+    ['lure','引蝶童',2,'留一只蝶；上一席添过花，再留一只。','fan'],
+    ['perch','停蝶伶',2,'台上有蝶，+3。','fan'],
+    ['peep','观蝶客',2,'放飞三只蝶，+7。','fan'],
+    ['herd','赶蝶娘',2,'把最早的一朵花换成两只蝶。','fan'],
   ],
   fire:[
-    ['ignite','点火童',2,'+1{firework} 下幕放','点一束下幕释放的烟花；谢幕登台则当幕释放。','rocket'],
-    ['fuse','催引匠',2,'1{firework} 提前到本幕','自动让一束待放烟花在本幕释放。','rocket'],
-    ['flameSong','伴焰伶',2,'每束齐放{firework} +1{applause}（最多 4）','本幕每束烟花额外得 1 基础喝彩，最多 4。','fan'],
-    ['quick','急火童',2,'+1{firework} 本幕放','点一束本幕释放的烟花。','rocket'],
-    ['paper','纸筒匠',2,'有{firework} +3{applause}','收场前有烟花，额外得 3 基础喝彩。','rocket'],
-    ['double','双响将',2,'齐放 ≥2{firework} +4{applause}','本幕释放至少两束烟花，额外得 4 基础喝彩。','drum'],
+    ['ignite','点火童',1,'点一束烟花，下幕放；谢幕当幕放。','rocket'],
+    ['quick','急火童',1,'点一束烟花。开演前有本幕待放的烟花就跟着放，否则留到下幕；谢幕当幕放。','rocket'],
+    ['fuse','催引匠',2,'本幕没有烟花待放时，将一束下幕烟花提前，+2。','rocket'],
+    ['flameSong','伴焰伶',2,'本幕每放一束烟花 +1，最多 +4。','fan'],
+    ['double','双响将',2,'本幕放至少两束，+4。','drum'],
+    ['paper','纸筒匠',2,'下一席登台点火，另留一束到下幕。站收场席时改接上一席；谢幕不加烟花。','rocket'],
+    ['ember','守焰童',2,'收场时若无烟花要放，补点一束到下幕；谢幕当幕放。','rocket'],
+    ['seal','封火师',2,'把一束本幕烟花留到下幕，+2；谢幕照常放。','rocket'],
   ],
   gardenware:[
-    ['planter','抱盆童',2,'+1{bonsai} 自动补缺','自动摆上一种缺少的盆景。','bonsai'],
-    ['exchange','换盆客',2,'+1{bonsai} 自动补缺','自动摆上一种缺少的盆景。','bonsai'],
-    ['judge','评景先生',2,'每种{bonsai}+1{applause}','每种盆景额外得 1 基础喝彩。','fan'],
-    ['vendor','卖盆叟',2,'有{bonsai} +3{applause}','台上有盆景，额外得 3 基础喝彩。','bonsai'],
-    ['orchid','送兰侍',2,'+1{bonsai}兰','摆上一盆兰。','bonsai'],
-    ['four','四雅先生',2,'≥3种{bonsai} +4{applause}','台上至少三种盆景，额外得 4 基础喝彩。','fan'],
-  ],
-  wings:[
-    ['lure','引蝶童',2,'+1{butterfly}','留下一只蝶。','fan'],
-    ['herd','赶蝶娘',2,'+1{butterfly}','留下一只蝶。','fan'],
-    ['dancer','蝶衣伶',2,'每只{butterfly}+1{applause}（最多 4）','每只蝶额外得 1 基础喝彩，最多 4。','fan'],
-    ['fan','扇蝶童',2,'+1{butterfly}','留下一只蝶。','fan'],
-    ['perch','停蝶伶',2,'有{butterfly} +3{applause}','台上有蝶，额外得 3 基础喝彩。','flower'],
-    ['peep','观蝶客',2,'≥3只{butterfly} +4{applause}','台上至少三只蝶，额外得 4 基础喝彩。','fan'],
+    ['planter','抱盆童',2,'按梅、兰、竹、菊的顺序补一个缺种。','bonsai'],
+    ['orchid','送兰侍',2,'缺兰时摆兰；已有兰则 +2。','bonsai'],
+    ['exchange','换盆客',2,'按菊、竹、兰、梅的顺序补一个缺种。','bonsai'],
+    ['judge','评景先生',2,'台上每种盆景 +1。','fan'],
+    ['vendor','卖盆叟',2,'卖掉最早摆上的一盆，+4。','bonsai'],
+    ['arrange','理盆童',2,'下一席摆盆后再补一个缺种。站收场席时改接上一席。','bonsai'],
+    ['four','四雅先生',2,'台上集齐四种盆景，+6。','fan'],
+    ['bamboo','青竹侍',2,'缺竹就摆竹；已有竹则改补菊。','bonsai'],
   ],
   circus:[
-    ['balls','抛丸童',1,'变为本席色','开演前变成自己所在席的颜色。','balls'],
-    ['rope','翻索客',2,'与邻席换色 · 自动择优','开演前与一个邻席交换颜色；只在匹配席数增加时交换。','clapper'],
-    ['warm','暖场童',2,'给下一席调色','开演前让下一席的木偶变成该席颜色；收场位没有下一席。','balls'],
-    ['walker','走绳伶',2,'本偶匹配 +3{applause}','调色后自己匹配所在席，额外得 3 基础喝彩。','clapper'],
-    ['tea','卖茶客',2,'上一席匹配 +3{applause}','调色后上一席匹配，额外得 3 基础喝彩；开场位没有上一席。','lamp'],
-    ['jester','弄臣',2,'三席匹配 +4{applause}','调色后三席全部匹配，额外得 4 基础喝彩。','drum'],
+    ['balls','抛丸童',1,'变为本席色；修成匹配时 +1。','balls'],
+    ['rope','翻索客',2,'自动和最能增加匹配的邻席换色；每修成一席 +1。','clapper'],
+    ['walker','走绳伶',2,'本席匹配 +2；由他人调成匹配改为 +3。','clapper'],
+    ['tea','卖茶客',2,'上一席若摆盆、引蝶或靠景物得分，留两朵花。','lamp'],
+    ['drummer','对鼓童',2,'与下一席同派时，两席各 +1。站收场席时改接上一席。','drum'],
+    ['pole','递竿客',2,'开演前若有邻席已匹配，调正自己。','clapper'],
+    ['mask','变脸生',2,'若有邻席被调成匹配，+2。','fan'],
+    ['jester','弄臣',2,'三席来自三个主流派，+4。','drum'],
+  ],
+  neutral:[
+    ['runner','跑堂童',3,'','fan'],
+    ['warm','暖场童',2,'调正一位错色邻席，优先下一席；成功 +1。','balls'],
+    ['support','捧场伶',2,'站在过场，左右属于不同主流派时 +3。','fan'],
+    ['clearer','收台童',2,'收掉一朵花，无花就放飞一只蝶；成功 +3。','clapper'],
+    ['sparker','引火小厮',2,'下一席添花后，点一束下幕烟花。站收场席时改接上一席；谢幕当幕放。','rocket'],
+    ['bouquet','献花童',2,'上一席摆过盆景，留两朵花。','flower'],
+    ['scenery','送景人',2,'上一席留过蝶，补一种缺少的盆景。','bonsai'],
+    ['lighter','举灯童',2,'开演前有邻席被调成匹配，留两只蝶。','lamp'],
   ],
 };
 export const cards=Object.fromEntries(Object.entries(groups).flatMap(([style,list])=>
-  list.map(([id,name,base,notation,text,prop],i)=>{
-    const color=styles[style].colors[i];
+  list.map(([id,name,base,notation,prop],i)=>{
+    const color=styles[style].color;
     const shade=factor=>[16,8,0].reduce((value,shift)=>value+(Math.round(((color>>shift)&255)*factor)<<shift),0);
-    return [id,{id,name,role:styles[style].name,cost:0,base,notation,text,prop,style,tone:tones[i%3].id,
-      color,dark:shade(.62),accent:0xe5aa77,back:shade(.57),hat:['buns','cap','wing','buns','wing','crown'][i]}];
+    return [id,{id,name,role:styles[style].name,cost:0,base,notation,text:notation,prop,style,tone:tones[i%3].id,
+      color,dark:shade(.62),accent:0xe5aa77,back:shade(.57),hat:['buns','cap','wing','buns','wing','crown'][i%6]}];
   })
 ));
 
@@ -75,8 +83,9 @@ export const storyCards=Object.fromEntries([
   ['general','将军','守城',0,2,'+1{lamp}','拨亮 1 盏灯。','clapper','applause',0x7a2020,0x4d1414,'cap'],
   ['granny','提灯老妪','引灯',0,2,'每{lamp}+1{applause}','每盏灯额外得 1 喝彩，至多 4。','lamp','applause',0x4b5d73,0x333f4e,'buns'],
   ['soldier','兵卒','杂役',0,1,'','随行的杂役兵卒。','fan','applause',0x6b5a3a,0x4a3e28,'cap'],
+  ['rain','求雨婆','花卉',0,2,'+1{flower}','留下一朵花。','flower','applause',0x658054,0x3a4930,'cap'],
 ].map(([id,name,role,cost,base,notation,text,prop,boost,color,dark,hat])=>[
-  id,{id,name,role,cost,base,notation,text,prop,boost,style:'story',color,dark,accent:0xe5aa77,back:dark,hat,tone:{woodcutter:'red',immortal:'yellow',wife:'blue',general:'red',granny:'yellow',soldier:'blue'}[id]},
+  id,{id,name,role,cost,base,notation,text,prop,boost,style:'story',color,dark,accent:0xe5aa77,back:dark,hat,tone:{woodcutter:'red',immortal:'yellow',wife:'blue',general:'red',granny:'yellow',soldier:'blue',rain:'blue'}[id]},
 ]));
 Object.assign(cards,storyCards);
 
@@ -91,31 +100,41 @@ export const events={
 export const route=branch=>['spring',branch,'finale'];
 // 保留原调用接口，观众直接推进整数倍率，不维护第二条热度状态。
 export const heatPercent=audience=>audience;
-export const audienceFactor=audience=>1+audience;
+// Tour applause uses integer units, with each spectator adding 5% of base.
+export const audienceFactor=(audience,mode)=>mode?20+audience:1+audience;
 
 export function fresh(){
   return {act:0,branch:'market',applause:0,applauseUnit,board:{flowers:[],fireworks:[],pots:[],butterflies:[],audience:0},
-    started:false,deck:[],draw:[],hand:[],used:[],lineup:[null,null,null],choices:{},history:[],ready:false,finished:false};
+    started:false,deck:[],copyTones:[],draw:[],hand:[],used:[],lineup:[null,null,null],choices:{},history:[],ready:false,finished:false};
 }
 export const nextBoard=board=>({...board});
 const clone=board=>({flowers:board.flowers.map(f=>({...f})),fireworks:[...board.fireworks],pots:[...board.pots],
   butterflies:[...board.butterflies],audience:board.audience,lamps:[...(board.lamps??[])]});
+const sceneryScorers=new Set(['flowerShow','snip','orchid','judge','vendor','four','perch','peep','clearer']);
 
-export function scoreAct(state,index=cards,mods=null){
+export function scoreAct(state,index=cards,mods=null,{tuning=true}={}){
   const openSlots=state.openSlots??[0,1,2];
   if(state.lineup.length!==3||state.lineup.some((id,i)=>id&&(!index[id]||!openSlots.includes(i)))||
     state.lineup.filter(Boolean).length>(state.maxPuppets??3))throw new RangeError('阵容超过本幕开放席位或人数。');
-  const board=clone(state.board), steps=[], effectiveTones=state.lineup.map(id=>index[id]?.tone??null);
+  const board=clone(state.board), steps=[], effectiveTones=state.lineup.map((id,i)=>id?(state.lineupTones?.[i]??index[id]?.tone??null):null);
   const matched=()=>effectiveTones.map((tone,i)=>Boolean(state.lineup[i])&&tone===tones[i].id);
   let points=0, settledPoints;
   const objectives=()=>[[{kind:'points',target:goalScore,label:'本幕喝彩',value:settledPoints??points}]];
   const start=objectives();
   const snapshot=extra=>({...extra,board:clone(board),baseApplause:points,objectives:objectives()});
   // 调色仅改变本幕有效颜色。先从开场到收场调色，再执行技能与招客。
+  const tuningGains=[0,0,0];
+  const neighbours=i=>[i+1,i-1].filter(j=>state.lineup[j]);
   for(const [i,id] of state.lineup.entries()){
+    if(!tuning||!['balls','rope','warm','pole'].includes(id))continue;
     const before=[...effectiveTones];
+    const previousMatches=matched().filter(Boolean).length;
     if(id==='balls')effectiveTones[i]=tones[i].id;
-    if(id==='warm'&&state.lineup[i+1])effectiveTones[i+1]=tones[i+1].id;
+    if(id==='warm'){
+      const target=neighbours(i).find(j=>!matched()[j]);
+      if(target!==undefined)effectiveTones[target]=tones[target].id;
+    }
+    if(id==='pole'&&neighbours(i).some(j=>matched()[j]))effectiveTones[i]=tones[i].id;
     if(id==='rope'){
       const current=matched().filter(Boolean).length;
       let best=current, swap=null;
@@ -127,14 +146,23 @@ export function scoreAct(state,index=cards,mods=null){
       }
       if(swap!==null)[effectiveTones[i],effectiveTones[swap]]=[effectiveTones[swap],effectiveTones[i]];
     }
+    tuningGains[i]=matched().filter(Boolean).length-previousMatches;
     const changed=effectiveTones.filter((tone,j)=>tone!==before[j]).length;
     if(changed)steps.push(snapshot({id,i,phase:'pre',changes:[{kind:'tune',amount:changed}],effectiveTones:[...effectiveTones]}));
   }
   const matches=matched(), audienceGain=matches.filter(Boolean).length;
-  const settledLater=[];
+  const changedTone=effectiveTones.map((tone,i)=>tone!==
+    (state.lineupTones?.[i]??index[state.lineup[i]]?.tone??null));
+  const repaired=matches.map((matched,i)=>matched&&changedTone[i]);
+  const settledLater=[], seatChanges=[], scoredScenery=[];
+  const nextAct=Math.min(state.act+1,(state.totalActs??actCount)-1);
+  const openingFireworks=board.fireworks.some(when=>when<=state.act);
+  const closingSeat=slots.length-1;
   for(const [i,id] of state.lineup.entries()){
     if(!id)continue;
     const card=index[id], changes=[], props=[];
+    const previous=state.lineup[i-1], next=state.lineup[i+1];
+    const supports=i===closingSeat?previous:next;
     let applause=card.base;
     const grant=amount=>{applause+=amount;};
     const use=kind=>{const data=kind==='flower'?board.flowers:kind==='bonsai'?board.pots:board.butterflies;
@@ -142,48 +170,110 @@ export function scoreAct(state,index=cards,mods=null){
     const flower=n=>{const actual=Math.min(n,8-board.flowers.length);
       for(let j=0;j<actual;j++)board.flowers.push({age:1});
       if(actual)changes.push({kind:'flower',amount:actual});};
-    const pot=type=>{if(board.pots.length<8){board.pots.push(type);changes.push({kind:'bonsai',amount:1});}};
-    const butterfly=()=>{if(board.butterflies.length<8){board.butterflies.push(i);changes.push({kind:'butterfly',amount:1});}};
+    const pot=type=>{if(type&&!board.pots.includes(type)){board.pots.push(type);changes.push({kind:'bonsai',amount:1});}};
+    const fill=(order=varieties)=>pot(order.find(type=>!board.pots.includes(type)));
+    const butterfly=(n=1)=>{
+      const actual=Math.min(n,8-board.butterflies.length);
+      for(let j=0;j<actual;j++)board.butterflies.push(i);
+      if(actual)changes.push({kind:'butterfly',amount:actual});
+    };
     const rocket=when=>{if(board.fireworks.length<8){board.fireworks.push(when);changes.push({kind:'firework',amount:1});}};
+    const consume=(kind,count=1)=>{
+      const pool=kind==='flower'?board.flowers:kind==='bonsai'?board.pots:board.butterflies;
+      if(pool.length<count)return false;
+      pool.splice(0,count);
+      props.push({kind,indices:Array.from({length:count},(_,j)=>j),remove:true});
+      changes.push({kind,amount:-count});
+      return true;
+    };
     switch(id){
       case 'florist':flower(2);break;
-      case 'rain':case 'tend':flower(1);break;
+      case 'rain':flower(1);break;
+      case 'tend':flower(i===2?2:1);break;
       case 'flowerShow':use('flower');grant(Math.min(4,board.flowers.length));break;
-      case 'ornament':use('flower');if(board.flowers.length)grant(3);break;
-      case 'snip':if(board.flowers.length){props.push({kind:'flower',indices:[0],remove:true});board.flowers.shift();changes.push({kind:'flower',amount:-1});grant(4);}break;
-      case 'ignite':rocket(Math.min(state.act+1,(state.totalActs??actCount)-1));break;
-      case 'quick':rocket(state.act);break;
-      case 'fuse':{const j=board.fireworks.findIndex(when=>when>state.act);
-        if(j!==-1){board.fireworks[j]=state.act;props.push({kind:'firework',indices:[j]});changes.push({kind:'advance',amount:1});}break;}
-      case 'paper':if(board.fireworks.length){props.push({kind:'firework',indices:[0]});grant(3);}break;
-      case 'flameSong':case 'double':settledLater.push({id,i});break;
-      case 'planter':case 'exchange':pot(varieties.find(type=>!board.pots.includes(type))??varieties[0]);break;
-      case 'orchid':pot('兰');break;
+      case 'snip':if(consume('flower'))grant(4);break;
+      case 'ignite':rocket(nextAct);break;
+      case 'quick':rocket(openingFireworks?state.act:nextAct);break;
+      case 'fuse':{const j=board.fireworks.some(when=>when<=state.act)?-1:board.fireworks.findIndex(when=>when>state.act);
+        if(j!==-1){board.fireworks[j]=state.act;props.push({kind:'firework',indices:[j]});changes.push({kind:'advance',amount:1});grant(2);}break;}
+      case 'seal':{
+        const j=board.fireworks.findIndex(when=>when===state.act);
+        if(nextAct>state.act&&j!==-1){board.fireworks[j]=nextAct;props.push({kind:'firework',indices:[j]});grant(2);}
+        break;
+      }
+      case 'flameSong':case 'double':case 'ember':settledLater.push({id,i});break;
+      case 'planter':fill();break;
+      case 'exchange':fill([...varieties].reverse());break;
+      case 'orchid':{
+        const orchid=board.pots.indexOf('兰');
+        if(orchid===-1)pot('兰');
+        else{props.push({kind:'bonsai',indices:[orchid]});grant(2);}
+        break;
+      }
       case 'judge':use('bonsai');grant(new Set(board.pots).size);break;
-      case 'vendor':use('bonsai');if(board.pots.length)grant(3);break;
-      case 'four':use('bonsai');if(new Set(board.pots).size>=3)grant(4);break;
-      case 'lure':case 'herd':case 'fan':butterfly();break;
-      case 'dancer':use('butterfly');grant(Math.min(4,board.butterflies.length));break;
+      case 'vendor':if(consume('bonsai'))grant(4);break;
+      case 'four':use('bonsai');if(new Set(board.pots).size===4)grant(6);break;
+      case 'bamboo':fill(['竹','菊']);break;
+      case 'lure':butterfly(seatChanges[i-1]?.has('flower')?2:1);break;
+      case 'herd':if(board.butterflies.length<8&&consume('flower'))butterfly(2);break;
       case 'perch':use('butterfly');if(board.butterflies.length)grant(3);break;
-      case 'peep':use('butterfly');if(board.butterflies.length>=3)grant(4);break;
-      case 'walker':if(matches[i])grant(3);break;
-      case 'tea':if(matches[i-1])grant(3);break;
-      case 'jester':if(audienceGain===3)grant(4);break;
+      case 'peep':if(consume('butterfly',3))grant(7);break;
+      case 'balls':case 'rope':case 'warm':grant(tuningGains[i]);break;
+      case 'walker':if(matches[i])grant(repaired[i]?3:2);break;
+      case 'tea':if(scoredScenery[i-1]||seatChanges[i-1]?.has('bonsai')||seatChanges[i-1]?.has('butterfly'))flower(2);break;
+      case 'drummer':if(index[supports]?.style==='circus')grant(1);break;
+      case 'mask':if(neighbours(i).some(j=>repaired[j]))grant(2);break;
+      case 'jester':{
+        const lineupStyles=state.lineup.map(actor=>index[actor]?.style);
+        if(lineupStyles.every(style=>style&&style!=='neutral')&&new Set(lineupStyles).size===3)grant(4);
+        break;
+      }
+      case 'support':if(i===1&&[index[previous]?.style,index[next]?.style].every(style=>style&&style!=='neutral')&&
+        index[previous].style!==index[next].style)grant(3);break;
+      case 'clearer':if(i===2&&(consume('flower')||consume('butterfly')))grant(3);break;
+      case 'bouquet':if(seatChanges[i-1]?.has('bonsai'))flower(2);break;
+      case 'scenery':if(seatChanges[i-1]?.has('butterfly'))fill();break;
+      case 'lighter':if(neighbours(i).some(j=>repaired[j]))butterfly(2);break;
+      case 'paper':if(i===closingSeat&&seatChanges[i-1]?.has('firework')&&nextAct>state.act)rocket(nextAct);break;
+      case 'sparker':if(i===closingSeat&&seatChanges[i-1]?.has('flower'))rocket(nextAct);break;
+      case 'arrange':if(i===closingSeat&&seatChanges[i-1]?.has('bonsai'))fill();break;
       case 'general':if(board.lamps.length<8){board.lamps.push(0);changes.push({kind:'lamp',amount:1});}break;
       case 'granny':grant(Math.min(4,board.lamps.length));break;
     }
+    scoredScenery[i]=sceneryScorers.has(id)&&applause>card.base;
+    const produced=seatChanges[i]=new Set(changes.filter(change=>change.amount>0).map(change=>change.kind));
     points+=applause;
     changes.push({kind:'applause',amount:applause});
     steps.push(snapshot({id,i,phase:'main',changes,props}));
+    const follow=previous==='paper'&&produced.has('firework')&&nextAct>state.act&&board.fireworks.length<8?['firework',nextAct]:
+      previous==='sparker'&&produced.has('flower')&&board.fireworks.length<8?['firework',nextAct]:
+      previous==='arrange'&&produced.has('bonsai')&&varieties.some(type=>!board.pots.includes(type))?['bonsai',varieties.find(type=>!board.pots.includes(type))]:null;
+    if(follow){
+      const [kind,item]=follow;
+      (kind==='bonsai'?board.pots:board.fireworks).push(item);
+      steps.push(snapshot({id:previous,i:i-1,phase:'close',changes:[{kind,amount:1}]}));
+    }
+    if(id==='drummer'&&index[supports]?.style==='circus'){
+      points++;
+      steps.push(snapshot({id,i,phase:'close',changes:[{kind:'applause',amount:1}]}));
+    }
+  }
+  for(const {id,i} of settledLater){
+    if(id==='ember'&&!board.fireworks.some(when=>when<=state.act)&&board.fireworks.length<8){
+      board.fireworks.push(nextAct);
+      steps.push(snapshot({id,i,phase:'close',changes:[{kind:'firework',amount:1}]}));
+    }
   }
   const launching=board.fireworks.flatMap((when,i)=>when<=state.act?[i]:[]), fired=launching.length;
   if(fired){
     board.fireworks=board.fireworks.filter(when=>when>state.act);
-    points+=fired*3;
+    const fireworkApplause=fired*(state.mode?2:3);
+    points+=fireworkApplause;
     steps.push(snapshot({id:null,i:-1,phase:'close',cue:'firework',props:[{kind:'firework',indices:launching,remove:true}],
-      changes:[{kind:'firework',amount:-fired},{kind:'applause',amount:fired*3}]}));
+      changes:[{kind:'firework',amount:-fired},{kind:'applause',amount:fireworkApplause}]}));
   }
   for(const {id,i} of settledLater){
+    if(id==='ember')continue;
     const amount=id==='flameSong'?Math.min(4,fired):fired>=2?4:0;
     if(amount){points+=amount;steps.push(snapshot({id,i,phase:'close',changes:[{kind:'applause',amount}]}));}
   }
@@ -191,9 +281,9 @@ export function scoreAct(state,index=cards,mods=null){
   if(extra){points+=extra;steps.push(snapshot({id:null,i:-1,phase:'close',cue:'mod',changes:[{kind:'applause',amount:extra}]}));}
   board.audience+=audienceGain;
   if(audienceGain)steps.push(snapshot({id:null,i:-1,phase:'close',cue:'match',changes:[{kind:'audience',amount:audienceGain}]}));
-  const factor=audienceFactor(board.audience);
+  const factor=audienceFactor(board.audience,state.mode);
   settledPoints=points*factor;
   steps.push(snapshot({id:null,i:-1,phase:'close',cue:'audience',changes:[{kind:'applause',amount:settledPoints}]}));
-  return {board,steps,start,progress:objectives(),buffs:[0,0,0],cues:[],matches,effectiveTones,audienceGain,
+  return {board,steps,start,progress:objectives(),buffs:[0,0,0],cues:[],matches,effectiveTones,audienceGain,tuningGains,
     audiencePercent:board.audience,factor,baseApplause:points,reward:{score:0},score:settledPoints};
 }

@@ -1,6 +1,6 @@
 # 灯下偶戏
 
-当前v12试玩：九只木偶、三幕演出、三色匹配招客。观众推动整数倍率增长，取消逐幕分数门槛；卡牌、六套预设和两本剧情一起适配。优先试「彩戏搭台」看杂耍调色与道具配合。
+当前 v17 试玩。巡演提供默认五选三和逐席三选一，两种模式分别保存。直接开演使用花蝶，可在选戏班中试其他基础预设和自由构筑。
 
 ## 本地试玩
 
@@ -14,22 +14,24 @@ python scripts/local_site.py --port 43182
 
 ## 离线HTML
 
-exports/Dengxia-Ouxi-v12.html为巡演，exports/Dengxia-Ouxi-v12-story.html为剧情，分别可下载后用浏览器打开。两文件放在同一目录时可互相切换；不需要安装Node或启动服务器。飞书内置预览可能不执行游戏脚本，请下载到电脑后打开。
+`Dengxia-Ouxi-v17.html` 为巡演，`Dengxia-Ouxi-v17-story.html` 为剧情。用浏览器打开，放在同一目录时可互相切换。
 
 生成已冻结版本的两份文件：
 
 ```powershell
-python scripts/standalone.py v12 exports/Dengxia-Ouxi-v12.html
-python scripts/standalone.py v12 exports/Dengxia-Ouxi-v12-story.html --page story.html
+python scripts/standalone.py v17 exports/Dengxia-Ouxi-v17.html
+python scripts/standalone.py v17 exports/Dengxia-Ouxi-v17-story.html --page story.html
 ```
 
 ## 代码与验证
 
 - dist/rules.js拥有卡牌、颜色和共享结算；dist/deck.js拥有戏班与局内副本。
-- dist/game.js与dist/story.js使用同一结算。dist/scenarios.js拥有台本、固定/开放席、人物与产出条件。剧情戏簿沿用dengxia-books，巡演v12进度使用独立存档键。
-- 五派三十种木偶，每派朱/青/金各两种；剧情六种木偶不进入自由构筑池。
+- dist/game.js 与 dist/story.js 使用同一结算。dist/scenarios.js 保存台本、固定或开放席、人物与产出条件。剧情戏簿沿用 dengxia-books，巡演两种模式分别保存进度。
+- 巡演有四派，每派八种木偶，另有八种通用木偶。同一套牌的所有副本在每局开始时随机分色。
 - node --test scripts/rules.test.mjs验证结算、调色、跨幕、容量等契约。
-- node scripts/playtest.mjs 300检查六套戏班的可达性和配色排演；beam结果不是严格最优证明。
-- versions/v11保留改前网页；versions/v12保留本次冻结版本。快照由scripts/local_site.py --backup创建，拒绝覆盖。
+- node scripts/playtest.mjs 200 按两种模式比较配色优先与即时得分优先策略。
+- node scripts/card-balance.mjs 600 评估全部巡演卡。逐席策略按已揭候选选牌，用随机样本估计后续席位。第二个参数可传历史版本 rules.js 的路径，用该版本的戏班和同一套随机种子复跑。
+- 加上 --details 查看各色候选实际入同色席和技能触发的次数、烟花释放时间，以及同阵容开启调色后的分差。
+- [历次试玩快照](VERSIONS.md) 可用于对比。快照由 scripts/local_site.py --backup 创建。
 
 本次交付网页试玩。后续Godot原生接入、世界取得木偶和永久故事进度仍待实施。

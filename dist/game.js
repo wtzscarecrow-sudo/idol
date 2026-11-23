@@ -1,19 +1,25 @@
-import { actCount, applauseUnit, audienceFactor, cards, events, fresh, goalScore, heatPercent, nextBoard, route, scoreAct, slots, styles, tones, varieties } from './rules.js?v=12';
-import { clearStage, copyLimit, deckSize, presets, startDeck, validDeck } from './deck.js?v=12';
+import { actCount, applauseUnit, audienceFactor, cards, events, fresh, goalScore, heatPercent, nextBoard, route, scoreAct, slots, styles, tones, varieties } from './rules.js?v=17';
+import { clearStage, copyLimit, deckSize, draftOptions, drawCards, presets, revealsPerAct, startDeck, toneSupply, validDeck } from './deck.js?v=17';
 import { createStage } from './stage.js?v=12';
-import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=12';
+import { cardRules, changesLine, effectName, feedback, goalDetail, icon, progressPercent, updateMeter } from './presentation.js?v=17';
 
 const byId=id=>document.getElementById(id);
-const key='dengxia-ouxi-save-v12';
+const key='dengxia-ouxi-save-v17';
 const theatre=byId('theatre'), stage=byId('stage'), hand=byId('hand'), dialog=byId('dialog'), dialogBody=byId('dialog-body');
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const cn=['一','二','三','四','五'];
 const effects=feedback(stage,byId('stage-effects'));
-const load=()=>{
+const load=mode=>{
   try {
-    const data=JSON.parse(localStorage.getItem(key));
-    if(data&&Number.isInteger(data.act)&&data.act>=0&&data.act<actCount&&data.lineup?.length===3&&
-      ['deck','draw','hand','used','history'].every(field=>Array.isArray(data[field]))&&validDeck(data.deck)&&
+    const data=JSON.parse(localStorage.getItem(key+'-'+mode));
+    if(data?.mode===mode&&Number.isInteger(data.act)&&data.act>=0&&data.act<actCount&&data.lineup?.length===3&&
+      ['deck','copyTones','draw','hand','used','history'].every(field=>Array.isArray(data[field]))&&validDeck(data.deck)&&
+      data.copyTones.length===deckSize&&tones.map(tone=>data.copyTones.filter(id=>id===tone.id).length)
+        .sort((a,b)=>b-a).every((n,i)=>n===toneSupply[i])&&
+      (data.mode==='hand'||data.mode==='draft'&&data.draftOrders?.length===actCount&&
+        data.draftOrders.every(orders=>Array.isArray(orders)&&orders.length===slots.length&&
+          orders.every(order=>Array.isArray(order)&&order.length===deckSize&&new Set(order).size===deckSize&&
+            order.every(copy=>Number.isInteger(copy)&&copy>=0&&copy<deckSize))))&&
       ['market','shrine'].includes(data.branch)&&data.choices&&data.board&&
       ['flowers','fireworks','pots','butterflies'].every(kind=>Array.isArray(data.board[kind]))&&
       Number.isInteger(data.board.audience)&&data.board.audience>=0&&data.board.audience<=9){
@@ -26,7 +32,11 @@ const load=()=>{
   }catch{}
   return fresh();
 };
-let state=load(), playing=false, current=-1, muted=true, audio=null, filter='all';
+let selectedMode='hand';
+try {
+  if(localStorage.getItem(key+'-mode')==='draft')selectedMode='draft';
+} catch {}
+let state=load(selectedMode), playing=false, current=-1, muted=true, audio=null, filter='all';
 let plannedFlights=[];
 let draftStyle='garden';
 let draft={};
@@ -35,15 +45,18 @@ try {
   if(validDeck(saved))for(const id of saved)draft[id]=(draft[id]??0)+1;
 } catch {}
 function persist(){
-  try { localStorage.setItem(key,JSON.stringify(state)); } catch {}
+  if(!state.started)return;
+  try { localStorage.setItem(key+'-'+state.mode,JSON.stringify(state)); } catch {}
 }
 const event=()=>events[route(state.branch)[state.act]];
 const canEdit=()=>state.started&&!state.ready&&!state.finished&&!playing;
 const cardId=copy=>copy===null?null:state.deck[copy];
 const cast=()=>state.lineup.map(cardId);
-const forecastAct=()=>scoreAct({...state,lineup:cast(),choices:state.lineup.map(copy=>state.choices[copy])});
+const cardTone=copy=>copy===null?null:state.copyTones[copy];
+const forecastAct=(tuning=true)=>scoreAct({...state,lineup:cast(),lineupTones:state.lineup.map(cardTone),choices:state.lineup.map(copy=>state.choices[copy])},cards,null,{tuning});
 const text=(id,value)=>{byId(id).textContent=value;};
-const multiplier=percent=>'×'+audienceFactor(percent);
+const multiplier=percent=>'×'+audienceFactor(percent,state.mode??selectedMode);
+const nextDraftSeat=()=>state.lineup.indexOf(null);
 const delay=time=>new Promise(resolve=>setTimeout(resolve,reduced?Math.min(260,time):time));
 const click=(id,fn)=>byId(id).addEventListener('click',fn);
 
@@ -105,6 +118,7 @@ function place(i,copy){
     text('announcement',cards[cardId(existing)].name+'回到手牌');
   } else {
     if(!state.hand.includes(copy))return;
+    if(state.mode==='draft'&&(i!==nextDraftSeat()||!draftOptions(state,i).includes(copy)))return;
     const origin=state.lineup.indexOf(copy);
     if(origin!==-1&&origin!==i)state.lineup[origin]=existing;
     state.lineup[i]=copy;
@@ -121,7 +135,12 @@ function togglePlacement(copy){
     place(seated,null);
     return;
   }
-  const matching=tones.findIndex(tone=>tone.id===cards[cardId(copy)].tone);
+  if(state.mode==='draft'){
+    const seat=nextDraftSeat();
+    if(seat!==-1)place(seat,copy);
+    return;
+  }
+  const matching=tones.findIndex(tone=>tone.id===cardTone(copy));
   const empty=state.lineup[matching]===null?matching:state.lineup.indexOf(null);
   if(empty!==-1)place(empty,copy);
   else text('announcement','站位已满。再点一张已上场的手牌可撤下。');
@@ -154,8 +173,8 @@ function makeCard(copy){
   const info=document.createElement('span');
   info.className='card-info';
   info.innerHTML='<span class="card-name">'+card.name+'<small data-style="'+card.style+'">'+styles[card.style].name+'</small></span>';
-  info.append(cardRules(card));
-  button.title='上台即得 '+card.base+' 基础喝彩。'+card.text;
+  info.append(cardRules({...card,tone:cardTone(copy)}));
+  button.title=tones.find(tone=>tone.id===cardTone(copy)).name+'色。上台即得 '+card.base+' 基础喝彩。'+card.text;
   button.append(info);
   button.addEventListener('click',()=>togglePlacement(copy));
   button.addEventListener('dragstart',e=>{
@@ -311,14 +330,24 @@ function update(){
   text('heat-label',previewHeat?'招客后倍率':lastAct?'收场倍率':'观众倍率');
   text('heat-multiplier',multiplier(percent));
   text('score-target',' / '+goalScore);
-  const handHint=lineup.includes(null)?'点击优先入同色空席；拖动可换位':'站位已满，再点已上场的牌可撤下';
+  const drafting=state.mode==='draft';
+  const draftSeat=nextDraftSeat();
+  const handHint=drafting
+    ?(draftSeat===-1?'三席已选齐。点台上的木偶可撤回重选。':slots[draftSeat]+'选 1 只，随后选择下一席')
+    :lineup.includes(null)?'点击优先入同色空席；拖动可换位':'站位已满，再点已上场的牌可撤下';
   text('hand-hint',canEdit()?handHint:'');
-  text('deck-status',state.started?'候场 '+state.hand.length+' · 已演 '+state.used.length+' / 9':'选九只木偶，开场全部可见');
-  text('deck',state.started?'查看牌组':'选牌组');
+  byId('tour-mode').disabled=playing;
+  byId('tour-mode').value=selectedMode;
+  byId('hand-filter').hidden=drafting;
+  text('hand-heading',drafting?'三选一':'候场木偶');
+  text('deck-status',state.started&&drafting?'已选 '+lineup.filter(Boolean).length+' / 3':
+    state.started?'候场 '+state.hand.length+' · 待揭 '+state.draw.length+' · 已演 '+state.used.length:
+    selectedMode==='draft'?'每席三选一':'开局揭 5 张');
+  text('deck',state.started&&!state.finished?'查看戏班':'选戏班');
   byId('deck').disabled=playing;
   const b=byId('perform');
-  b.disabled=playing||(canEdit()&&lineup.every(id=>!id));
-  b.textContent=!state.started?'选牌组开演':state.finished?'再开一局':state.ready?'下一幕':playing?'锣声已响':'击鼓开戏';
+  b.disabled=playing||(canEdit()&&draftSeat!==-1);
+  b.textContent=!state.started?'直接开演':state.finished?'再开一局':state.ready?(drafting?'下一幕 · 重新选角':'下一幕 · 揭 '+revealsPerAct[state.act+1]+' 张'):playing?'锣声已响':'击鼓开戏';
   slotButtons.forEach((button,i)=>{
     const id=lineup[i];
     button.disabled=!canEdit();
@@ -327,7 +356,7 @@ function update(){
     button.setAttribute('aria-label',slots[i]+'，'+(id?cards[id].name+'。点按撤下':'空位'));
     button.dataset.tone=tones[i].id;
     button.dataset.match=String(Boolean(id)&&forecast.matches[i]);
-    const tuned=id&&cards[id].tone!==forecast.effectiveTones[i];
+    const tuned=id&&cardTone(state.lineup[i])!==forecast.effectiveTones[i];
     button.innerHTML='<b>'+tones[i].glyph+' '+tones[i].name+' · '+slots[i]+'</b>'+(id?cards[id].name:'＋')+'<small>'+(id?(forecast.matches[i]?(tuned?'调色成功 · 招客 +1':'配色成功 · 招客 +1'):'错色可演 · 不招客'):'同色招客 +1')+'</small>';
     button.setAttribute('aria-label',tones[i].name+'色'+slots[i]+'，'+(id?cards[id].name+(forecast.matches[i]?'，招客加一':'，错色可演')+'。点按撤下':'空位，同色招客加一'));
   });
@@ -335,14 +364,15 @@ function update(){
     button.disabled=playing||!state.started;
     button.setAttribute('aria-pressed',String(filter===id));
   }
-  const visible=state.hand.filter(copy=>filter==='all'||cards[cardId(copy)].style===filter);
+  const visible=drafting?(canEdit()&&draftSeat!==-1?draftOptions(state,draftSeat):[]):
+    state.hand.filter(copy=>filter==='all'||cards[cardId(copy)].style===filter);
   if(hand.children.length!==visible.length||visible.some((id,i)=>hand.children[i]!==cardButtons.get(id))){
     hand.replaceChildren(...visible.map(id=>cardButtons.get(id)||makeCard(id)));
   }
   for(const copy of visible){
     const button=cardButtons.get(copy);
     const slot=state.lineup.indexOf(copy);
-    button.disabled=!canEdit();button.draggable=canEdit();
+    button.disabled=!canEdit();button.draggable=canEdit()&&!drafting;
     button.dataset.inPlay=slot!==-1;
     button.dataset.slot=slot!==-1?slots[slot]:'';
     button.setAttribute('aria-pressed',String(slot!==-1));
@@ -365,8 +395,12 @@ function update(){
   goalStatus(forecast);
   text('cue-title',playing?'逐位结算':'排演预估');
   const points=forecast.progress[0][0].value;
-  const breakdown=forecast.baseApplause+' 基础 '+multiplier(forecast.audiencePercent)+' = '+points+' 喝彩 · 招客 +'+forecast.audienceGain;
-  text('forecast-summary',!state.started?'九只全可见 · 三幕各演一次':playing?'本幕 +0 喝彩':hasCast?breakdown:'先安排木偶');
+  const fired=-(forecast.steps.find(step=>step.cue==='firework')?.changes[0].amount??0);
+  const pending=forecast.board.fireworks.length;
+  const extraTuning=forecast.tuningGains.some(gain=>gain>0)?points-forecastAct(false).score:0;
+  const breakdown=forecast.baseApplause+' 基础 '+multiplier(forecast.audiencePercent)+' = '+points+' 喝彩 · 招客 +'+forecast.audienceGain+
+    (fired||pending?' · 烟花 本幕 '+fired+' / 下幕 '+pending:'')+(extraTuning>0?' · 调色贡献 +'+extraTuning:'');
+  text('forecast-summary',!state.started?(selectedMode==='draft'?'每席三选一':'随机揭 5 张'):playing?'本幕 +0 喝彩':hasCast?breakdown:'先安排木偶');
   forecastSlots(forecast.steps);
 }
 
@@ -440,13 +474,14 @@ function surge(element){
 async function perform(){
   if(playing)return;
   if(!state.started||state.finished){
-    openModal('presets');return;
+    begin(presets.garden);return;
   }
   if(state.ready){
     const board=state.board;
     state.act++;
     state.board=nextBoard(state.board);
     state.ready=false;
+    if(state.mode==='hand')drawCards(state);
     filter='all';
     const growth=board.flowers.filter(flower=>flower.age===0).length;
     const wilt=board.flowers.length-state.board.flowers.length;
@@ -455,11 +490,11 @@ async function perform(){
     if(wilt)growthChanges.push({kind:'flower',amount:-wilt});
     if(growthChanges.length)syncTokens(state.board,growthChanges);
     persist();update();
-    text('announcement','第'+cn[state.act]+'幕，观众与道具留场');
+    text('announcement','第'+cn[state.act]+'幕，'+(state.mode==='draft'?'请为开场选角':'揭 '+revealsPerAct[state.act]+' 张')+'；观众与道具留场');
     if(growthChanges.length)text('caption',[growth?'新开 '+growth+' 朵':'',wilt?'花谢 '+wilt+' 朵':''].filter(Boolean).join(' · '));
     return;
   }
-  if(state.lineup.every(copy=>copy===null))return;
+  if(nextDraftSeat()!==-1)return;
   const e=event();
   const result=forecastAct();
   playing=true;update();sound('gong');
@@ -529,22 +564,21 @@ function begin(deck,custom=false){
   if(playing||state.started&&!state.finished||!validDeck(deck))return;
   const branch=state.finished?'market':state.branch;
   state={...fresh(),branch};
-  startDeck(state,deck);
+  startDeck(state,deck,Math.random,selectedMode);
   if(custom){
     try {localStorage.setItem(key+'-deck',JSON.stringify(deck));} catch {}
   }
   filter='all';cardButtons.clear();
   dialog.close();persist();update();
-  text('announcement','九只木偶全部就绪。点选优先入同色空席，先铺垫再收尾。');
+  text('announcement',state.mode==='draft'?'请从三只木偶中为开场选一位。':'已揭开五张牌。点选优先入同色空席。');
 }
 
 const deckNames={
-  mixed:['彩戏搭台','花、烟花与调色合作；可以用杂耍化解错色。'],
-  garden:['春色满台','花留在台上，先种花再赏花。'],
+  garden:['春色满台','添花后可以赏花剪花，也可以引蝶。'],
   fire:['灯火连天','先点火留到下幕，再借齐放收分。'],
   gardenware:['四景同堂','收集梅兰竹菊，凑齐四种后得分。'],
-  wings:['蝶过三席','先引蝶留场，再观蝶收分。'],
-  circus:['全场叫好','自动调色招客，配色成功后收分。'],
+  circus:['全场叫好','用相邻搭档调色、接鼓和得分。'],
+  mixed:['彩戏搭台','卖茶客能接过摆盆、引蝶或赏景，再为下一席添花。'],
 };
 
 function deckEditor(){
@@ -582,7 +616,7 @@ function deckEditor(){
   const counters=[];
   for(const card of Object.values(cards).filter(card=>card.style===draftStyle)){
     const item=row(card.name,'');
-    item.insertBefore(cardRules(card),item.querySelector('p'));
+    item.insertBefore(cardRules(card,{showTone:false}),item.querySelector('p'));
     const actions=document.createElement('div');
     actions.className='deck-counter';
     const label=document.createElement('output');
@@ -604,8 +638,7 @@ function deckEditor(){
   dialogBody.append(grid);
   function refreshCounts(){
     const total=Object.values(draft).reduce((sum,count)=>sum+count,0);
-    const counts=tones.map(tone=>tone.glyph+Object.entries(draft).reduce((n,[id,count])=>n+(cards[id].tone===tone.id?count:0),0)).join(' · ');
-    status.textContent=total+' / '+deckSize+' 只 · '+counts+' · 同名最多 '+copyLimit;
+    status.textContent=total+' / '+deckSize+' 只 · 开局随机分色 · 同名最多 '+copyLimit;
     start.disabled=total!==deckSize;
     for(const {id,label,minus,plus} of counters){
       const count=draft[id]??0;
@@ -620,13 +653,14 @@ function modalContent(type){
   dialogBody.replaceChildren();
   if(type==='help'){
     text('dialog-title','怎样排一台戏');
-    row('九只，三幕','开场全部可见，每只本场演一次。点击优先入同色空席；再点撤下，拖动可指定位置或交换。');
-    row('配色招客','朱●开场、青◆过场、金▲收场。匹配一席，收场观众 +1；错色可正常演出。杂耍开演前自动调色，预估会显示结果。');
-    row('越演越热闹','先从开场到收场执行技能，释放烟花，再招客，最后整幕基础喝彩 ×（1 + 观众）。三席都匹配时，三幕倍率为 ×4 → ×7 → ×10。');
+    row('两种排演模式','五选三开局揭 5 张，以后每幕补 3 张，每幕选满三席，未登台的牌留在手里。逐席三选一按开场、过场、收场依次选角，选齐三席才能开演。');
+    row('配色招客','每局随机分色。朱●开场、青◆过场、金▲收场。配色每席招 1 位观众，错色也可正常演出。杂耍调色如果增加匹配，还会获得基础喝彩。');
+    row('越演越热闹','先演木偶，再放烟花、招客。巡演以 ×20 为起点，每位观众让整幕整数倍率增加 1。');
+    row('看相邻两席','有些木偶等上一席完成动作，有些会接着下一席加一道戏。卡面上的 + 分指额外基础喝彩。');
     row('先铺垫，后收尾','观众和道具留到下一幕。没有单幕分数门槛，三幕累计 '+goalScore+' 喝彩获得满堂彩；没达标也不损失木偶。');
     for(const style of Object.values(styles))row(style.name,style.summary);
   } else if(type==='presets'){
-    text('dialog-title','选择九只戏班');
+    text('dialog-title','选择戏班');
     const grid=document.createElement('div');
     grid.className='preset-grid';
     for(const [style,[name,description]] of Object.entries(deckNames)){
@@ -654,7 +688,7 @@ function modalContent(type){
       const count=state.deck.filter(card=>card===id).length;
       const used=state.used.filter(copy=>cardId(copy)===id).length;
       const item=row(cards[id].name+' ×'+count,cards[id].text+' 已演 '+used+' 张。');
-      item.insertBefore(cardRules(cards[id]),item.querySelector('p'));
+      item.insertBefore(cardRules(cards[id],{showTone:false}),item.querySelector('p'));
       grid.append(item);
     }
     dialogBody.append(grid);
@@ -692,6 +726,13 @@ function openModal(type){
   if(!dialog.open)dialog.showModal();
 }
 for(const id of ['tour','help','log'])click(id,()=>openModal(id));
+byId('tour-mode').addEventListener('change',event=>{
+  if(playing)return;
+  selectedMode=event.target.value;
+  try {localStorage.setItem(key+'-mode',selectedMode);} catch {}
+  state=load(selectedMode);
+  filter='all';cardButtons.clear();update();
+});
 click('deck',()=>openModal(state.started&&!state.finished?'deck':'presets'));
 click('close',()=>dialog.close());
 dialog.addEventListener('click',e=>{

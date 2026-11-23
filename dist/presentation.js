@@ -1,4 +1,4 @@
-import {tones} from './rules.js?v=12';
+import {tones} from './rules.js?v=17';
 const symbols = {
   tune:['◈','调色','#cbb6f7'],
   flower:['❀','花','#ff9aa7'],bud:['❀','初绽的花','#ff9aa7'],butterfly:['⋈','蝴蝶','#ffbd68'],lamp:['灯','灯盏','#ffd276'],
@@ -34,7 +34,7 @@ export function changesLine(changes){
   if(!changes.length)line.textContent='无变化';
   return line;
 }
-export function cardRules(card){
+export function cardRules(card,{showTone=true}={}){
   const wrapper=document.createElement('span');
   wrapper.className='card-actions';
   const base=chip('applause',card.base);
@@ -53,11 +53,14 @@ export function cardRules(card){
     symbol.title=part==='applause'?'基础喝彩':effectName(part);
     skill.append(symbol);
   }
-  const tone=tones.find(tone=>tone.id===card.tone);
-  const badge=document.createElement('span');
-  badge.className='tone-badge';badge.dataset.tone=card.tone;
-  badge.textContent=tone.glyph+' '+tone.name;badge.title=tone.name+'色，匹配席位可招客';
-  wrapper.append(badge,base);
+  if(showTone){
+    const tone=tones.find(tone=>tone.id===card.tone);
+    const badge=document.createElement('span');
+    badge.className='tone-badge';badge.dataset.tone=card.tone;
+    badge.textContent=tone.glyph+' '+tone.name;badge.title=tone.name+'色，匹配席位可招客';
+    wrapper.append(badge);
+  }
+  wrapper.append(base);
   if(card.notation)wrapper.append(skill);
   return wrapper;
 }
