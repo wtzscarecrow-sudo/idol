@@ -140,3 +140,27 @@ dialog::backdrop{background:#130d09b9}
   .slot b{display:block;font-size:11px;margin:0}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
+/* 三色同时用形状标记，卡牌艺术色与规则色独立。 */
+.act-track{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:1fr}
+[data-tone="red"]{--tone:#ed8b7d}
+[data-tone="blue"]{--tone:#86cdd6}
+[data-tone="yellow"]{--tone:#efca79}
+.tone-badge{color:var(--tone);border:1px solid var(--tone);border-radius:5px;padding:2px 5px;font-size:12px;white-space:nowrap}
+.slot{border-top:3px solid var(--tone);min-height:64px}
+.slot b{display:block;color:var(--tone);margin-right:0;font-size:12px}
+.slot small{display:block;font-size:11px;margin-top:5px;color:#c4b39c;white-space:nowrap}
+.slot[data-match="true"]{box-shadow:0 0 15px color-mix(in srgb,var(--tone) 30%,transparent)}
+.slot[data-match="true"] small{color:var(--tone)}
+.slot[data-closed="true"]{opacity:.45;background:repeating-linear-gradient(135deg,#241a15,#241a15 8px,#30241c 8px,#30241c 16px)}
+.slot[data-closed="true"] small{white-space:normal}
+.card-actions{flex-wrap:wrap}
+.card-skill{flex-basis:100%;font-size:12px;line-height:1.6}
+#goal-detail{font-size:12px;line-height:1.5}
+@media(max-width:600px){
+  .top{height:auto;min-height:63px;flex-wrap:wrap;gap:10px;padding:10px 14px}
+  .top-actions{flex-wrap:wrap;gap:6px}
+  .top-actions button,.top-actions a{white-space:nowrap}
+  .slot{width:92px;min-width:0;padding:4px;font-size:12px}
+  .slot small{font-size:10px;white-space:normal}
+}

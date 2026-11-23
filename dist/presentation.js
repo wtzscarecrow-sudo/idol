@@ -1,5 +1,7 @@
+import {tones} from './rules.js?v=12';
 const symbols = {
-  flower:['❀','花','#ff9aa7'],bud:['❀','初绽的花','#ff9aa7'],butterfly:['⋈','蝴蝶','#ffbd68'],lamp:['','灯盏','#ffd276'],
+  tune:['◈','调色','#cbb6f7'],
+  flower:['❀','花','#ff9aa7'],bud:['❀','初绽的花','#ff9aa7'],butterfly:['⋈','蝴蝶','#ffbd68'],lamp:['灯','灯盏','#ffd276'],
   beat:['◎','锣点','#d6a6ff'],applause:['✦','喝彩','#ffe49c'],
   slot:['▣','站位','#ead5a4'],
   bloom:['✿','盛开','#ff98ac'],protect:['❧','护花','#e6aaba'],
@@ -51,7 +53,12 @@ export function cardRules(card){
     symbol.title=part==='applause'?'基础喝彩':effectName(part);
     skill.append(symbol);
   }
-  wrapper.append(base,skill);
+  const tone=tones.find(tone=>tone.id===card.tone);
+  const badge=document.createElement('span');
+  badge.className='tone-badge';badge.dataset.tone=card.tone;
+  badge.textContent=tone.glyph+' '+tone.name;badge.title=tone.name+'色，匹配席位可招客';
+  wrapper.append(badge,base);
+  if(card.notation)wrapper.append(skill);
   return wrapper;
 }
 export function progressPercent(paths){

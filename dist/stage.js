@@ -72,6 +72,11 @@ const venueSkies = {
   '栖云庙':['#182932','#687f7b','#a4a48b','#f2debb',49,820],
   '白鹭渡':['#182840','#527379','#8c9990','#eedbbe',42,650],
   '上元城':['#211d37','#575470','#ab7272','#ffdea7',66,903],
+  '雪山':['#101b2c','#3c5462','#93a6ac','#e6edf0',58,780],
+  '仙境':['#1e2350','#8578b6','#f0d9a2','#ffe9b0',72,942],
+  '城门外':['#1b2630','#565a54','#c79e74','#f2d8ae',54,613],
+  '军帐':['#3d2a22','#8a5f3e','#c88d5a','#f0c893',44,560],
+  '空幕':['#171311','#241c17','#32271f','#4a3a2c',30,420],
 };
 function backdrop(venue) {
   const c=document.createElement('canvas');c.width=1600;c.height=850;
@@ -411,7 +416,8 @@ function miniatureLamp(parent,x,y,z){
   return lamp;
 }
 function lights(scene) {
-  scene.add(new T.HemisphereLight(0xfdf1d4,0x645346,2.05));
+  const ambient=new T.HemisphereLight(0xfdf1d4,0x645346,2.05);
+  scene.add(ambient);
   const key=new T.DirectionalLight(0xffdfa8,3.2);
   key.position.set(-4,8,6);key.castShadow=true;
   key.shadow.mapSize.set(1024,1024);
@@ -419,6 +425,7 @@ function lights(scene) {
   key.shadow.normalBias=.036;
   scene.add(key);
   const rim=new T.DirectionalLight(0xa6d7d3,1.6);rim.position.set(6,5,-6);scene.add(rim);
+  return {ambient,key,rim};
 }
 function integrate(value,target,velocity,dt,stiffness,damping) {
   velocity+=(stiffness*(target-value)-damping*velocity)*dt;
@@ -486,7 +493,13 @@ export function createStage(host, slotButtons, cards) {
     scene.background=backgrounds.get(venue);
     currentVenue=venue;
   }
-  lights(scene);
+  const stageLights=lights(scene);
+  function mood(dark){
+    const d=Math.min(1,Math.max(0,dark));
+    stageLights.ambient.intensity=2.05*(1-d*.88);
+    stageLights.key.intensity=3.2*(1-d*.94);
+    stageLights.rim.intensity=1.6*(1-d*.9);
+  }
   const pads=stageSet(scene);
   const camera=new T.OrthographicCamera(-8,8,4.5,-4.5,.1,55);
   const theatre=host.closest('.theatre');
@@ -498,6 +511,11 @@ export function createStage(host, slotButtons, cards) {
   const bursts=[], motions=[];
   const pulse=new T.PointLight(0xffbc79,0,5.8,2);
   scene.add(pulse);
+  const glowPlane=new T.Mesh(new T.PlaneGeometry(16,8.2),new T.MeshBasicMaterial({color:0xffcf8a,transparent:true,opacity:0,depthWrite:false}));
+  glowPlane.position.set(0,2.6,-4.9);
+  scene.add(glowPlane);
+  function glow(on){ glowPlane.material.opacity=on?0.92:0; }
+  function zoom(z){ camera.zoom=z; camera.updateProjectionMatrix(); }
   function burstAt(x,y,z,kind,color=burstColors[kind]??0xffda8f){
     if(reduced)return;
     const material=new T.MeshBasicMaterial({color,transparent:true});
@@ -637,11 +655,11 @@ export function createStage(host, slotButtons, cards) {
       const items=contents[kind];
       while(pieces.length<items.length){
         const i=pieces.length;
-        const x=kind==='flower'?-1.35-(i%4)*.63:kind==='bonsai'?1.35+(i%4)*.63:kind==='audience'?(i-2)*.78:(i%4-1.5)*.58;
-        const z=kind==='audience'?3.66:kind==='firework'?2.44+Math.floor(i/4)*.42:2.78+Math.floor(i/4)*.49;
+        const x=kind==='flower'?-1.35-(i%4)*.63:kind==='bonsai'?1.35+(i%4)*.63:kind==='audience'?((i%5)-2)*.65:(i%4-1.5)*.58;
+        const z=kind==='audience'?3.66+Math.floor(i/5)*.58:kind==='firework'?2.44+Math.floor(i/4)*.42:2.78+Math.floor(i/4)*.49;
         const model=kind==='butterfly'?butterfly(resources,x,z):kind==='bonsai'?bonsai(resources,x,.01,z):null;
         const object=model?.p??model?.object??(kind==='flower'?flower(resources,x,z):
-          kind==='firework'?rocket(resources,x,.01,z):viewer(resources,(i-2)*.78,z,i));
+          kind==='firework'?rocket(resources,x,.01,z):viewer(resources,x,z,i));
         pieces.push({object,model,x,z,life:1,visible:false,scale:1,travel:1,from:x});
       }
       pieces.forEach((piece,i)=>{
@@ -775,5 +793,5 @@ export function createStage(host, slotButtons, cards) {
     }
     renderer.render(scene,camera);
   });
-  return {sync,highlight,accent,stageProps,portraits};
+  return {sync,highlight,accent,stageProps,portraits,mood,glow,zoom,actors:()=>actors};
 }

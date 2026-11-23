@@ -1,0 +1,251 @@
+{
+  "scope": "64-state beam plus color-matching novice samples; not exhaustive optimization",
+  "report": [
+    {
+      "name": "garden",
+      "target": 140,
+      "bestKnown": 264,
+      "noviceMin": 147,
+      "noviceMax": 264,
+      "noviceSuccess": "300/300",
+      "distinctSuccess": 27,
+      "example": [
+        {
+          "lineup": [
+            "florist",
+            "rain",
+            "tend"
+          ],
+          "score": 24,
+          "factor": 4,
+          "base": 6
+        },
+        {
+          "lineup": [
+            "florist",
+            "rain",
+            "flowerShow"
+          ],
+          "score": 70,
+          "factor": 7,
+          "base": 10
+        },
+        {
+          "lineup": [
+            "ornament",
+            "snip",
+            "flowerShow"
+          ],
+          "score": 170,
+          "factor": 10,
+          "base": 17
+        }
+      ]
+    },
+    {
+      "name": "fire",
+      "target": 140,
+      "bestKnown": 263,
+      "noviceMin": 212,
+      "noviceMax": 263,
+      "noviceSuccess": "300/300",
+      "distinctSuccess": 27,
+      "example": [
+        {
+          "lineup": [
+            "ignite",
+            "fuse",
+            "flameSong"
+          ],
+          "score": 40,
+          "factor": 4,
+          "base": 10
+        },
+        {
+          "lineup": [
+            "ignite",
+            "paper",
+            "flameSong"
+          ],
+          "score": 63,
+          "factor": 7,
+          "base": 9
+        },
+        {
+          "lineup": [
+            "quick",
+            "fuse",
+            "double"
+          ],
+          "score": 160,
+          "factor": 10,
+          "base": 16
+        }
+      ]
+    },
+    {
+      "name": "gardenware",
+      "target": 140,
+      "bestKnown": 232,
+      "noviceMin": 170,
+      "noviceMax": 232,
+      "noviceSuccess": "300/300",
+      "distinctSuccess": 27,
+      "example": [
+        {
+          "lineup": [
+            "planter",
+            "exchange",
+            "judge"
+          ],
+          "score": 32,
+          "factor": 4,
+          "base": 8
+        },
+        {
+          "lineup": [
+            "planter",
+            "exchange",
+            "judge"
+          ],
+          "score": 70,
+          "factor": 7,
+          "base": 10
+        },
+        {
+          "lineup": [
+            "vendor",
+            "orchid",
+            "four"
+          ],
+          "score": 130,
+          "factor": 10,
+          "base": 13
+        }
+      ]
+    },
+    {
+      "name": "wings",
+      "target": 140,
+      "bestKnown": 232,
+      "noviceMin": 199,
+      "noviceMax": 232,
+      "noviceSuccess": "300/300",
+      "distinctSuccess": 27,
+      "example": [
+        {
+          "lineup": [
+            "lure",
+            "herd",
+            "dancer"
+          ],
+          "score": 32,
+          "factor": 4,
+          "base": 8
+        },
+        {
+          "lineup": [
+            "lure",
+            "herd",
+            "dancer"
+          ],
+          "score": 70,
+          "factor": 7,
+          "base": 10
+        },
+        {
+          "lineup": [
+            "fan",
+            "perch",
+            "peep"
+          ],
+          "score": 130,
+          "factor": 10,
+          "base": 13
+        }
+      ]
+    },
+    {
+      "name": "circus",
+      "target": 140,
+      "bestKnown": 215,
+      "noviceMin": 149,
+      "noviceMax": 215,
+      "noviceSuccess": "300/300",
+      "distinctSuccess": 27,
+      "example": [
+        {
+          "lineup": [
+            "balls",
+            "rope",
+            "warm"
+          ],
+          "score": 20,
+          "factor": 4,
+          "base": 5
+        },
+        {
+          "lineup": [
+            "balls",
+            "rope",
+            "warm"
+          ],
+          "score": 35,
+          "factor": 7,
+          "base": 5
+        },
+        {
+          "lineup": [
+            "walker",
+            "tea",
+            "jester"
+          ],
+          "score": 160,
+          "factor": 10,
+          "base": 16
+        }
+      ]
+    },
+    {
+      "name": "mixed",
+      "target": 140,
+      "bestKnown": 257,
+      "noviceMin": 165,
+      "noviceMax": 257,
+      "noviceSuccess": "300/300",
+      "distinctSuccess": 164,
+      "example": [
+        {
+          "lineup": [
+            "balls",
+            "rope",
+            "warm"
+          ],
+          "score": 20,
+          "factor": 4,
+          "base": 5
+        },
+        {
+          "lineup": [
+            "florist",
+            "snip",
+            "flowerShow"
+          ],
+          "score": 77,
+          "factor": 7,
+          "base": 11
+        },
+        {
+          "lineup": [
+            "ignite",
+            "paper",
+            "jester"
+          ],
+          "score": 160,
+          "factor": 10,
+          "base": 16
+        }
+      ]
+    }
+  ]
+}

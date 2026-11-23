@@ -8,16 +8,19 @@ import subprocess
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def build(version, output):
+def build(version, output, page_name="index.html"):
     if not re.fullmatch(r"v\d{2,}", version):
         raise ValueError("Use a version name such as v07.")
     source = ROOT / "versions" / version / "dist"
-    page = (source / "index.html").read_text(encoding="utf-8")
+    if page_name not in ("index.html", "story.html"):
+        raise ValueError("Choose index.html or story.html.")
+    page = (source / page_name).read_text(encoding="utf-8")
+    entry = re.search(r'<script type="module" src="\./([^?"\s]+)', page).group(1)
     npm = shutil.which("npm.cmd") or shutil.which("npm")
     if not npm:
         raise RuntimeError("npm is required to bundle the archived JavaScript.")
     result = subprocess.run(
-        [npm, "exec", "--yes", "--package=esbuild@0.28.1", "--", "esbuild", "game.js",
+        [npm, "exec", "--yes", "--package=esbuild@0.28.1", "--", "esbuild", entry,
          "--bundle", "--format=iife", "--legal-comments=inline"],
         cwd=source, capture_output=True, check=True,
     )
@@ -31,8 +34,11 @@ def build(version, output):
     )
     page = re.sub(r'<script type="module" src="[^"]+"></script>',
                   lambda match: "<script>\n" + javascript + "\n</script>", page)
-    page = re.sub(r'href="/versions/(v\d+)/"', r'href="./Dengxia-Ouxi-\1.html"', page)
-    page = page.replace('class="brand" href="./"', 'class="brand" href=""')
+    page = re.sub(r'<a class="legacy-link" href="/versions/[^\"]+">[^<]+</a>', '', page)
+    main_file = f"Dengxia-Ouxi-{version}.html"
+    story_file = f"Dengxia-Ouxi-{version}-story.html"
+    page = page.replace('href="./story.html"', f'href="./{story_file}"')
+    page = page.replace('href="./"', f'href="./{main_file}"')
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("x", encoding="utf-8", newline="\n") as destination:
         destination.write(page)
@@ -43,5 +49,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("version")
     parser.add_argument("output", type=Path)
+    parser.add_argument("--page", choices=("index.html", "story.html"), default="index.html")
     args = parser.parse_args()
-    build(args.version, args.output)
+    build(args.version, args.output, args.page)
